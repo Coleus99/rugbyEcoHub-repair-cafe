@@ -1,0 +1,3540 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Restarters API",
+    "description": "An API for accessing Restarters data.  No API authorisation is necessary - all data is read-only and public.",
+    "contact": {
+      "email": "tech@therestartproject.org"
+    },
+    "license": {
+      "name": "GPL v3",
+      "url": "https://tldrlegal.com/license/gnu-general-public-license-v3-(gpl-3)"
+    },
+    "version": "2.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://restarters.net",
+      "description": "Live API Server"
+    },
+    {
+      "url": "http://restarters.test:8000",
+      "description": "Test API Server"
+    }
+  ],
+  "paths": {
+    "/api/v2/alerts": {
+      "get": {
+        "tags": ["Alerts"],
+        "summary": "Get list of active alerts",
+        "operationId": "listAlertsv2",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of alerts",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Alert"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Alerts"],
+        "summary": "Create Alert",
+        "description": "Creates an alert.",
+        "operationId": "createAlert",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["title", "html", "start", "end"],
+                "properties": {
+                  "title": {
+                    "$ref": "#/components/schemas/Alert/properties/title"
+                  },
+                  "html": {
+                    "$ref": "#/components/schemas/Alert/properties/html"
+                  },
+                  "start": {
+                    "$ref": "#/components/schemas/Alert/properties/start"
+                  },
+                  "end": {
+                    "$ref": "#/components/schemas/Alert/properties/end"
+                  },
+                  "ctatitle": {
+                    "$ref": "#/components/schemas/Alert/properties/ctalink"
+                  },
+                  "ctalink": {
+                    "$ref": "#/components/schemas/Alert/properties/ctalink"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/Alert/properties/id"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/alerts/{id}": {
+      "patch": {
+        "tags": ["Alerts"],
+        "summary": "Edit Alert",
+        "description": "Edits an alert.",
+        "operationId": "updateAlert",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["title", "html", "start", "end"],
+                "properties": {
+                  "title": {
+                    "$ref": "#/components/schemas/Alert/properties/title"
+                  },
+                  "html": {
+                    "$ref": "#/components/schemas/Alert/properties/html"
+                  },
+                  "start": {
+                    "$ref": "#/components/schemas/Alert/properties/start"
+                  },
+                  "end": {
+                    "$ref": "#/components/schemas/Alert/properties/end"
+                  },
+                  "ctatitle": {
+                    "$ref": "#/components/schemas/Alert/properties/ctalink"
+                  },
+                  "ctalink": {
+                    "$ref": "#/components/schemas/Alert/properties/ctalink"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/Alert/properties/id"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/devices/{id}": {
+      "get": {
+        "tags": ["Devices"],
+        "summary": "Get Device",
+        "description": "Returns information about a device.",
+        "operationId": "getDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Device"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Devices"],
+        "summary": "Delete Device",
+        "description": "Deletes a device.",
+        "operationId": "deleteDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "404": {
+            "description": "Device not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Devices"],
+        "summary": "Edit Device",
+        "description": "Edits a device.",
+        "operationId": "editDevice",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["category", "item_type"],
+                "properties": {
+                  "eventid": {
+                    "title": "id",
+                    "description": "Unique identifier of the event to which the device belongs",
+                    "format": "int64",
+                    "example": 1
+                  },
+                  "category": {
+                    "$ref": "#/components/schemas/Device/properties/category"
+                  },
+                  "item_type": {
+                    "$ref": "#/components/schemas/Device/properties/item_type"
+                  },
+                  "brand": {
+                    "$ref": "#/components/schemas/Device/properties/brand"
+                  },
+                  "model": {
+                    "$ref": "#/components/schemas/Device/properties/model"
+                  },
+                  "age": {
+                    "$ref": "#/components/schemas/Device/properties/age"
+                  },
+                  "estimate": {
+                    "$ref": "#/components/schemas/Device/properties/estimate"
+                  },
+                  "problem": {
+                    "$ref": "#/components/schemas/Device/properties/problem"
+                  },
+                  "notes": {
+                    "$ref": "#/components/schemas/Device/properties/notes"
+                  },
+                  "repair_status": {
+                    "$ref": "#/components/schemas/Device/properties/repair_status"
+                  },
+                  "next_steps": {
+                    "$ref": "#/components/schemas/Device/properties/next_steps"
+                  },
+                  "spare_parts": {
+                    "$ref": "#/components/schemas/Device/properties/spare_parts"
+                  },
+                  "barrier": {
+                    "$ref": "#/components/schemas/Device/properties/barrier"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Device"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/devices": {
+      "post": {
+        "tags": ["Devices"],
+        "summary": "Create Device",
+        "description": "Creates a device.",
+        "operationId": "createDevice",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["category", "item_type"],
+                "properties": {
+                  "eventid": {
+                    "title": "id",
+                    "description": "Unique identifier of the event to which the device belongs",
+                    "format": "int64",
+                    "example": 1
+                  },
+                  "category": {
+                    "$ref": "#/components/schemas/Device/properties/category"
+                  },
+                  "item_type": {
+                    "$ref": "#/components/schemas/Device/properties/item_type"
+                  },
+                  "brand": {
+                    "$ref": "#/components/schemas/Device/properties/brand"
+                  },
+                  "model": {
+                    "$ref": "#/components/schemas/Device/properties/model"
+                  },
+                  "age": {
+                    "$ref": "#/components/schemas/Device/properties/age"
+                  },
+                  "estimate": {
+                    "$ref": "#/components/schemas/Device/properties/estimate"
+                  },
+                  "problem": {
+                    "$ref": "#/components/schemas/Device/properties/problem"
+                  },
+                  "notes": {
+                    "$ref": "#/components/schemas/Device/properties/notes"
+                  },
+                  "repair_status": {
+                    "$ref": "#/components/schemas/Device/properties/repair_status"
+                  },
+                  "next_steps": {
+                    "$ref": "#/components/schemas/Device/properties/next_steps"
+                  },
+                  "spare_parts": {
+                    "$ref": "#/components/schemas/Device/properties/spare_parts"
+                  },
+                  "barrier": {
+                    "$ref": "#/components/schemas/Device/properties/barrier"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Device"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/events/{id}": {
+      "get": {
+        "tags": ["Events"],
+        "summary": "Get Event",
+        "description": "Returns information about an event.",
+        "operationId": "getEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Event id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Event"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Event not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Events"],
+        "summary": "Edit Event",
+        "description": "Edits an event.  The event of a group cannot be changed after creation.  Only the fields sent are changed; a field sent empty or null is cleared.",
+        "operationId": "editEvent",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "start": {
+                    "$ref": "#/components/schemas/Event/properties/start"
+                  },
+                  "end": {
+                    "$ref": "#/components/schemas/Event/properties/start"
+                  },
+                  "timezone": {
+                    "$ref": "#/components/schemas/Event/properties/timezone"
+                  },
+                  "title": {
+                    "$ref": "#/components/schemas/Event/properties/title"
+                  },
+                  "description": {
+                    "$ref": "#/components/schemas/Event/properties/description"
+                  },
+                  "location": {
+                    "$ref": "#/components/schemas/Event/properties/location"
+                  },
+                  "online": {
+                    "$ref": "#/components/schemas/Event/properties/online"
+                  },
+                  "link": {
+                    "$ref": "#/components/schemas/Event/properties/link"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Event"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/moderate/events": {
+      "get": {
+        "tags": ["Events"],
+        "summary": "Get Events for Moderation",
+        "description": "Only available for Administrators and Network Coordinators.",
+        "operationId": "getEventsModeratev2",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An array of groups",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/events": {
+      "post": {
+        "tags": ["Events"],
+        "summary": "Create Event",
+        "description": "Creates an event.",
+        "operationId": "createEvent",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["start", "end", "title", "description", "location", "lat", "lng"],
+                "properties": {
+                  "groupid": {
+                    "title": "id",
+                    "description": "Unique identifier of the group to which the event belongs",
+                    "format": "int64",
+                    "example": 1
+                  },
+                  "start": {
+                    "$ref": "#/components/schemas/Event/properties/start"
+                  },
+                  "end": {
+                    "$ref": "#/components/schemas/Event/properties/start"
+                  },
+                  "timezone": {
+                    "$ref": "#/components/schemas/Event/properties/timezone"
+                  },
+                  "title": {
+                    "$ref": "#/components/schemas/Event/properties/title"
+                  },
+                  "description": {
+                    "$ref": "#/components/schemas/Event/properties/description"
+                  },
+                  "location": {
+                    "$ref": "#/components/schemas/Event/properties/location"
+                  },
+                  "online": {
+                    "$ref": "#/components/schemas/Event/properties/online"
+                  },
+                  "link": {
+                    "$ref": "#/components/schemas/Event/properties/link"
+                  },
+                  "network_data": {
+                    "description": "Network-defined JSON data"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Event"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/groups/names": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get list of group names",
+        "operationId": "getGroupListv2",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "description": "Include archived groups",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of group names",
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Group Name"
+                          },
+                          "lat": {
+                            "type": "number",
+                            "example": 51.5,
+                            "nullable": true
+                          },
+                          "lng": {
+                            "type": "number",
+                            "example": -0.12,
+                            "nullable": true
+                          },
+                          "country": {
+                            "type": "string",
+                            "example": "United Kingdom",
+                            "nullable": true
+                          },
+                          "network_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer"
+                            }
+                          },
+                          "tag_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer"
+                            }
+                          },
+                          "archived_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          }
+                        },
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/groups/summary": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get list of groups with summary information",
+        "operationId": "getGroupSummariesv2",
+        "parameters": [
+          {
+            "name": "archived",
+            "in": "query",
+            "description": "Include archived groups.  Default false.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeNextEvent",
+            "in": "query",
+            "description": "Include the next event for the group.  This makes the call slower.  Default false.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeCounts",
+            "in": "query",
+            "description": "Include the counts of hosts and restarters.  This makes the call slower.  Default false.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Comma-separated group ids.  When present, only these groups are returned (used by the groups list to hydrate the visible rows).  Maximum 200 ids.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of events",
+                      "type": "array",
+                      "items": {}
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/groups/tags": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get list of group tags",
+        "operationId": "getGroupTagsv2",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of group tags",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Tag"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/groups/{id}": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get Group",
+        "description": "Returns information about a group.",
+        "operationId": "getGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Group id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Groups"],
+        "summary": "Edit Group",
+        "description": "Edit a group.",
+        "operationId": "editGroup",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["name", "location", "description"],
+                "properties": {
+                  "name": {
+                    "$ref": "#/components/schemas/Group/properties/name"
+                  },
+                  "location": {
+                    "$ref": "#/components/schemas/Group/properties/location"
+                  },
+                  "phone": {
+                    "$ref": "#/components/schemas/Group/properties/phone"
+                  },
+                  "website": {
+                    "$ref": "#/components/schemas/Group/properties/website"
+                  },
+                  "email": {
+                    "$ref": "#/components/schemas/Group/properties/email"
+                  },
+                  "description": {
+                    "$ref": "#/components/schemas/Group/properties/description"
+                  },
+                  "timezone": {
+                    "$ref": "#/components/schemas/Group/properties/timezone"
+                  },
+                  "image": {
+                    "description": "Image for the group",
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "network_data": {
+                    "description": "Network-defined JSON data"
+                  },
+                  "archived_at": {
+                    "title": "archived_at",
+                    "description": "If present, this group has been archived and is no longer active.",
+                    "format": "date-time"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/groups/{id}/events": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get Group",
+        "description": "Returns the list of events for a group.",
+        "operationId": "getGroupv2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Group id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "The minimum start date for an event in ISO8601 format.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T11:30:00+00:00"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "description": "The maximum end date for an event in ISO8601 format.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T12:30:00+00:00"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of events",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EventSummary"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        }
+      }
+    },
+    "/api/v2/groups/{id}/volunteers": {
+      "get": {
+        "tags": ["Groups", "Volunteers"],
+        "summary": "Get Group Volunteers",
+        "description": "Returns the list of confirmed volunters for a group.",
+        "operationId": "getVolunteersForGroupv2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Group id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of volunteers",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Volunteer"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        }
+      }
+    },
+    "/api/v2/groups/{id}/volunteers/{iduser}": {
+      "delete": {
+        "tags": ["Groups", "Volunteers"],
+        "summary": "Delete Group Volunteer",
+        "description": "Removes a volunteer from a group",
+        "operationId": "deleteVolunteerForGroupv2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Group id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "iduser",
+            "in": "path",
+            "description": "User id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Groups", "Volunteers"],
+        "summary": "Modify Group Volunteer",
+        "description": "Modify a volunteer's status on a group",
+        "operationId": "patchVolunteerForGroupv2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Group id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "host",
+            "in": "path",
+            "description": "Host",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        }
+      }
+    },
+    "/api/v2/moderate/groups": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get Groups for Moderation",
+        "description": "Only available for Administrators and Network Coordinators. ",
+        "operationId": "getGroupsModeratev2",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An array of groups",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Group"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/groups": {
+      "post": {
+        "tags": ["Groups"],
+        "summary": "Create Group",
+        "description": "Creates a group.",
+        "operationId": "createGroup",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["name", "location", "description"],
+                "properties": {
+                  "name": {
+                    "$ref": "#/components/schemas/Group/properties/name"
+                  },
+                  "location": {
+                    "$ref": "#/components/schemas/Group/properties/location"
+                  },
+                  "phone": {
+                    "$ref": "#/components/schemas/Group/properties/phone"
+                  },
+                  "website": {
+                    "$ref": "#/components/schemas/Group/properties/website"
+                  },
+                  "email": {
+                    "$ref": "#/components/schemas/Group/properties/email"
+                  },
+                  "description": {
+                    "$ref": "#/components/schemas/Group/properties/description"
+                  },
+                  "timezone": {
+                    "$ref": "#/components/schemas/Group/properties/timezone"
+                  },
+                  "image": {
+                    "description": "Image for the group",
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "network_data": {
+                    "description": "Network-defined JSON data"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/items": {
+      "get": {
+        "tags": ["Items"],
+        "summary": "Get suggested list of items which could be used in a Device.",
+        "operationId": "listItemsv2",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of items",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Item"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/networks": {
+      "get": {
+        "tags": ["Networks"],
+        "summary": "Get Networks",
+        "description": "Returns list of networks on the platform.",
+        "operationId": "getNetworks",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of networks",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NetworkSummary"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Network not found"
+          }
+        }
+      }
+    },
+    "/api/v2/networks/{id}": {
+      "get": {
+        "tags": ["Networks"],
+        "summary": "Get Network",
+        "description": "Returns information about a network.",
+        "operationId": "getNetwork",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Network"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Event not found"
+          }
+        }
+      }
+    },
+    "/api/v2/networks/{id}/groups": {
+      "get": {
+        "tags": ["Networks"],
+        "summary": "Get Network Groups",
+        "description": "Returns list of groups for a network.",
+        "operationId": "getNetworkGroups",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "includeNextEvent",
+            "in": "query",
+            "description": "Include the next event for the group.  This makes the call slower.  Default false.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeDetails",
+            "in": "query",
+            "description": "Include the details for each group.  This makes the call significantly slower.  Default false.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeStats",
+            "in": "query",
+            "description": "Include the stats for each group.  This makes the call significantly slower.  Default false.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "description": "Include archived groups",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "updated_start",
+            "in": "query",
+            "description": "The minimum start date for when a group was updated in ISO8601 format.  Useful if you need to only process groups that have had recent changes.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T11:30:00+00:00"
+            }
+          },
+          {
+            "name": "updated_end",
+            "in": "query",
+            "description": "The maximum end date for when a group was updated in ISO8601 format.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T12:30:00+00:00"
+            }
+          },
+          {
+            "name": "group_tag",
+            "in": "query",
+            "description": "Filter by group tag ID. Only groups with this tag will be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of groups",
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/GroupSummary"
+                          },
+                          {
+                            "$ref": "#/components/schemas/Group"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Network not found"
+          }
+        }
+      }
+    },
+    "/api/v2/networks/{id}/events": {
+      "get": {
+        "tags": ["Networks"],
+        "summary": "Get Network Events",
+        "description": "Returns list of events for a network.",
+        "operationId": "getNetworkEvents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "The minimum start date for an event in ISO8601 format.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T11:30:00+00:00"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "description": "The maximum end date for an event in ISO8601 format.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T12:30:00+00:00"
+            }
+          },
+          {
+            "name": "updated_start",
+            "in": "query",
+            "description": "The minimum start date for when an event was updated in ISO8601 format.  Useful if you need to only process events that have had recent changes.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T11:30:00+00:00"
+            }
+          },
+          {
+            "name": "updated_end",
+            "in": "query",
+            "description": "The maximum end date for when an event was updated in ISO8601 format.  Inclusive.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2022-09-18T12:30:00+00:00"
+            }
+          },
+          {
+            "name": "includeDetails",
+            "in": "query",
+            "description": "Include the details for each event.  This makes the call significantly slower.  Default false.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "group_tag",
+            "in": "query",
+            "description": "Filter by group tag ID. Only events from groups with this tag will be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of events",
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/EventSummary"
+                          },
+                          {
+                            "$ref": "#/components/schemas/Event"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Network not found"
+          }
+        }
+      }
+    },
+    "/api/v2/networks/{id}/tags": {
+      "get": {
+        "tags": ["Networks"],
+        "summary": "Get Network Tags",
+        "description": "Returns list of tags available for a network. Administrators see global + network tags; others see only network-specific tags.",
+        "operationId": "getNetworkTags",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "network_only",
+            "in": "query",
+            "description": "Only return tags specific to this network (exclude global tags)",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "title": "data",
+                      "description": "An array of tags",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Tag"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Network not found"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Networks"],
+        "summary": "Create Network Tag",
+        "description": "Create a new tag for a network. Requires authentication as a Network Coordinator for this network or an Administrator.",
+        "operationId": "createNetworkTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "description": "Name of the tag",
+                    "type": "string",
+                    "example": "Municipality A"
+                  },
+                  "description": {
+                    "description": "Description of the tag",
+                    "type": "string",
+                    "example": "Groups managed by Municipality A"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tag created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Tag"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden - User is not a coordinator for this network"
+          },
+          "404": {
+            "description": "Network not found"
+          },
+          "422": {
+            "description": "Validation error - tag name already exists in this network"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v2/networks/{id}/stats": {
+      "get": {
+        "tags": ["Networks"],
+        "summary": "Get Network Stats",
+        "description": "Returns impact statistics for a network, optionally filtered by group tag.",
+        "operationId": "getNetworkStats",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "group_tag",
+            "in": "query",
+            "description": "Filter stats to only include groups with this tag ID",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "co2_total": {
+                      "type": "number",
+                      "example": 17631.6
+                    },
+                    "co2_powered": {
+                      "type": "number",
+                      "example": 17475.97
+                    },
+                    "co2_unpowered": {
+                      "type": "number",
+                      "example": 155.64
+                    },
+                    "waste_total": {
+                      "type": "number",
+                      "example": 2021.72
+                    },
+                    "waste_powered": {
+                      "type": "number",
+                      "example": 1952.1
+                    },
+                    "waste_unpowered": {
+                      "type": "number",
+                      "example": 69.62
+                    },
+                    "fixed_devices": {
+                      "type": "integer",
+                      "example": 680
+                    },
+                    "fixed_powered": {
+                      "type": "integer",
+                      "example": 667
+                    },
+                    "fixed_unpowered": {
+                      "type": "integer",
+                      "example": 13
+                    },
+                    "repairable_devices": {
+                      "type": "integer",
+                      "example": 520
+                    },
+                    "dead_devices": {
+                      "type": "integer",
+                      "example": 178
+                    },
+                    "participants": {
+                      "type": "integer",
+                      "example": 880
+                    },
+                    "volunteers": {
+                      "type": "integer",
+                      "example": 556
+                    },
+                    "hours_volunteered": {
+                      "type": "integer",
+                      "example": 3152
+                    },
+                    "parties": {
+                      "type": "integer",
+                      "example": 161
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Network not found"
+          }
+        }
+      }
+    },
+    "/api/v2/networks/{id}/tags/{tagId}": {
+      "put": {
+        "tags": ["Networks"],
+        "summary": "Update Network Tag",
+        "description": "Update a tag for a network. Requires authentication as a Network Coordinator for this network or an Administrator.",
+        "operationId": "updateNetworkTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "description": "Tag id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "My Tag"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Description of the tag",
+                    "nullable": true
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tag updated successfully"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden - User is not a coordinator for this network"
+          },
+          "404": {
+            "description": "Network or tag not found"
+          },
+          "422": {
+            "description": "Validation error or duplicate tag name"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Networks"],
+        "summary": "Delete Network Tag",
+        "description": "Delete a tag from a network. Requires authentication as a Network Coordinator for this network or an Administrator. This will remove the tag from all groups.",
+        "operationId": "deleteNetworkTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Network id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "description": "Tag id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag deleted successfully"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden - User is not a coordinator for this network or tag is global"
+          },
+          "404": {
+            "description": "Network or tag not found"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ]
+      }
+    },
+    "/api/v2/repairs": {
+      "get": {
+        "tags": ["Repairs"],
+        "summary": "Export repair records in Open Repair Data Standard v0.3",
+        "description": "Bulk export of repair records for the Open Repair Alliance. Covers approved events on approved groups only. Returns JSON by default, or CSV when format=csv. Administrator role required.",
+        "operationId": "listRepairsv2",
+        "parameters": [
+          {
+            "name": "api_token",
+            "in": "query",
+            "description": "A valid user API token. The caller must hold the Administrator role.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Response format",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "json",
+              "enum": ["json", "csv"]
+            }
+          },
+          {
+            "name": "updated_since",
+            "in": "query",
+            "description": "Only records whose device, event or group row changed at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "event_start",
+            "in": "query",
+            "description": "Only records from events starting at or after this date",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "event_end",
+            "in": "query",
+            "description": "Only records from events starting at or before this date",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "powered",
+            "in": "query",
+            "description": "Restrict to powered or unpowered categories. Unfiltered when absent.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number, 1-based",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Records per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrdsRepair"
+                      }
+                    },
+                    "meta": {
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        },
+                        "standard": {
+                          "type": "string"
+                        },
+                        "columns": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "sync": {
+                      "properties": {
+                        "generated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "max_updated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden - the authenticated user is not an Administrator"
+          },
+          "503": {
+            "description": "Export is not configured: no id namespace or data provider name has been set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Alert": {
+        "title": "Alert",
+        "description": "An alert shown to users onsite.",
+        "required": ["id", "title", "html", "start", "end"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this alert",
+            "format": "int64",
+            "example": 1
+          },
+          "title": {
+            "title": "title",
+            "description": "The title of this alert",
+            "format": "string",
+            "example": "Support our work!"
+          },
+          "html": {
+            "title": "html",
+            "description": "HTML body of the alert",
+            "format": "string"
+          },
+          "ctatitle": {
+            "title": "ctatitle",
+            "description": "(Optional) The text for a Call To Action button.",
+            "format": "string",
+            "example": "Double Your Donation Now"
+          },
+          "variant": {
+            "title": "variant",
+            "description": "(Optional) The alert variant (default is secondary).",
+            "format": "string",
+            "example": "secondary"
+          },
+          "ctalink": {
+            "title": "ctalink",
+            "description": "(Optional) The link for the button to direct to.",
+            "format": "string",
+            "example": "https://www.paypal.com/gb/fundraiser/charity/61071"
+          },
+          "start": {
+            "title": "start",
+            "description": "Start showing the alert at this time, in ISO8601 format.",
+            "format": "date-time",
+            "example": "2022-09-18T11:30:00+00:00"
+          },
+          "end": {
+            "title": "end",
+            "description": "Stop showing the alert at this time, in ISO8601 format.",
+            "format": "date-time",
+            "example": "2022-09-18T12:30:00+00:00"
+          }
+        },
+        "type": "object"
+      },
+      "AlertCollection": {
+        "title": "AlertCollection",
+        "description": "A collection of Alerts.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Alert"
+        }
+      },
+      "Category": {
+        "title": "Category",
+        "description": "A class of items.",
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this category",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "title": "name",
+            "description": "Unique name of this category",
+            "format": "string",
+            "example": "Scotland"
+          },
+          "powered": {
+            "title": "powered",
+            "description": "Whether the item is powered (true) or unpowered (false)",
+            "format": "boolean",
+            "example": "true"
+          }
+        },
+        "type": "object"
+      },
+      "Device": {
+        "title": "Device",
+        "description": "An item which was examined at an Event.",
+        "required": ["id", "category", "item_type"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this item.",
+            "format": "int64",
+            "example": 1
+          },
+          "eventid": {
+            "title": "eventid",
+            "description": "The event to which this device belongs.",
+            "format": "int64",
+            "example": 1
+          },
+          "eventtitle": {
+            "title": "eventtitle",
+            "description": "Title of the event.  Provided for convenience to avoid extra API calls.",
+            "format": "string",
+            "example": "Europe/London"
+          },
+          "event_date": {
+            "title": "event_date",
+            "description": "When the event started.  Provided for convenience to avoid extra API calls.",
+            "format": "date-time",
+            "example": "2024-03-10T13:00:00+00:00"
+          },
+          "groupid": {
+            "title": "groupid",
+            "description": "The group to which this device belongs.",
+            "format": "int64",
+            "example": 1
+          },
+          "groupname": {
+            "title": "groupname",
+            "description": "Name of the group. Provided for convenience to avoid extra API calls.",
+            "format": "string",
+            "example": "Restarters HQ"
+          },
+          "created_at": {
+            "title": "created_at",
+            "description": "When this device was first added",
+            "format": "date-time",
+            "example": "2022-09-18T11:30:00+00:00"
+          },
+          "updated_at": {
+            "title": "updated_at",
+            "description": "When this device was last updated",
+            "format": "date-time",
+            "example": "2022-09-18T11:30:00+00:00"
+          },
+          "category": {
+            "title": "category",
+            "description": "The category to which this item belongs.",
+            "format": "int64",
+            "example": "16"
+          },
+          "category_creation": {
+            "title": "category_creation",
+            "description": "The id of the category to which this item belonged at the time of creation (if different).",
+            "format": "int64",
+            "example": "16"
+          },
+          "item_type": {
+            "title": "item_type",
+            "description": "The name of the item.",
+            "format": "string",
+            "example": "Blender"
+          },
+          "brand": {
+            "title": "brand",
+            "description": "The brand or manufacturer of this item.",
+            "format": "string",
+            "example": "ACME"
+          },
+          "model": {
+            "title": "model",
+            "description": "The specific model of this item.",
+            "format": "string",
+            "example": "Wunderblender 2000"
+          },
+          "age": {
+            "title": "age",
+            "description": "The age of this item in years.  0 means the age is not known.",
+            "format": "number",
+            "maximum": "500",
+            "minimum": "0",
+            "example": "1.5"
+          },
+          "estimate": {
+            "title": "estimate",
+            "description": "The weight estimage for this item in kg.",
+            "format": "float",
+            "minimum": "0",
+            "example": "1.5"
+          },
+          "problem": {
+            "title": "problem",
+            "description": "Description of the problem/solution.",
+            "format": "string",
+            "example": "The power switch was broken."
+          },
+          "shortProblem": {
+            "title": "shortProblem",
+            "description": "Shortened version of the of the problem/solution field.",
+            "format": "string",
+            "example": "The power switch was broken."
+          },
+          "notes": {
+            "title": "notes",
+            "description": "Notes - repair difficulties, owner's perception of problem etc",
+            "format": "string",
+            "example": "I didn't have the right kind of screwdriver to open it up."
+          },
+          "repair_status": {
+            "title": "repair_status",
+            "description": "Whether the item was fixed, is repairable, or cannot be fixed.",
+            "format": "string",
+            "enum": ["Fixed", "Repairable", "End of life"],
+            "example": "Fixed"
+          },
+          "next_steps": {
+            "title": "next_steps",
+            "description": "Iff repair_status is 'repairable', what the next steps are.",
+            "format": "string",
+            "enum": ["More time needed", "Professional help", "Do it yourself"],
+            "example": "More time needed"
+          },
+          "spare_parts": {
+            "title": "spare_parts",
+            "description": "Iff repair_status is 'repairable', whether any spare parts are needed.",
+            "format": "string",
+            "enum": ["No", "Manufacturer", "Third party"],
+            "example": "Manufacturer"
+          },
+          "barrier": {
+            "title": "barrier",
+            "description": "Iff repair_status is 'End of life',  the primary barrier to repair.",
+            "format": "string",
+            "enum": ["Spare parts not available", "Spare parts too expensive", "No way to open the product", "Repair information not available", "Lack of equipment"],
+            "example": "Spare parts too expensive"
+          },
+          "images": {
+            "title": "images",
+            "description": "Any images associated with this devices",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "Group": {
+        "title": "Group",
+        "description": "A Group of Restarters, who organise events.",
+        "required": ["id", "full"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this group",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "title": "name",
+            "description": "Unique name of this group",
+            "format": "string",
+            "example": "Restarters HQ"
+          },
+          "location": {
+            "$ref": "#/components/schemas/GroupLocation"
+          },
+          "image": {
+            "title": "image",
+            "description": "URL of an image for this group.  You should prefix this with /uploads before use.",
+            "format": "string",
+            "example": "/mid_1597853610178a4b76e4d666b2a7b32ee75d8a24c706f1cbf213970.png"
+          },
+          "phone": {
+            "title": "phone",
+            "description": "An optional phone number to contact the group.",
+            "format": "string",
+            "example": "07544 314678"
+          },
+          "website": {
+            "title": "website",
+            "description": "An URL for the group's own separate website.",
+            "format": "string",
+            "example": "https://therestartproject.org"
+          },
+          "email": {
+            "title": "email",
+            "description": "Any email contact address for the group.",
+            "format": "string",
+            "example": "info@therestartproject.org"
+          },
+          "description": {
+            "title": "description",
+            "description": "HTML description of the group.",
+            "format": "string",
+            "example": "<p>This is a description.</p>"
+          },
+          "next_event": {
+            "$ref": "#/components/schemas/EventSummary"
+          },
+          "timezone": {
+            "title": "timezone",
+            "description": "Timezone for this group.  If empty will inherit the timezone from the network.",
+            "format": "string",
+            "example": "Europe/London"
+          },
+          "hosts": {
+            "title": "hosts",
+            "description": "The number of hosts of this group.",
+            "type": "number"
+          },
+          "restarters": {
+            "title": "hosts",
+            "description": "The number of restarters in this group.",
+            "type": "number"
+          },
+          "approved": {
+            "title": "hosts",
+            "description": "Whether the group has been approved",
+            "type": "boolean"
+          },
+          "networks": {
+            "title": "networks",
+            "description": "An array of networks of which the group is a member.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSummary"
+            }
+          },
+          "tags": {
+            "title": "tags",
+            "description": "An array of tags which apply to the group.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            }
+          },
+          "full": {
+            "title": "full",
+            "description": "Indicates that this is a full result, not summary group information.",
+            "format": "boolean",
+            "example": "true"
+          },
+          "network_data": {
+            "description": "Network-defined JSON data"
+          },
+          "stats": {
+            "title": "stats",
+            "description": "An array of statistics about the activity of a group.",
+            "properties": {
+              "co2_powered": {
+                "title": "co2_powered",
+                "description": "The amount of CO2 saved by repairing powered items.",
+                "type": "number"
+              },
+              "co2_unpowered": {
+                "title": "co2_unpowered",
+                "description": "The amount of CO2 saved by repairing unpowered items.",
+                "type": "number"
+              },
+              "co2_total": {
+                "title": "co2_total",
+                "description": "co2_powered + co2_unpowered",
+                "type": "number"
+              },
+              "waste_powered": {
+                "title": "waste_powered",
+                "description": "The weight in kg of waste saved by repairing powered items.",
+                "type": "number"
+              },
+              "waste_unpowered": {
+                "title": "waste_unpowered",
+                "description": "The weight in kg of waste saved by repairing unpowered items.",
+                "type": "number"
+              },
+              "fixed_powered": {
+                "title": "fixed_powered",
+                "description": "The number of powered items which have been repaired.",
+                "type": "number"
+              },
+              "fixed_unpowered": {
+                "title": "fixed_unpowered",
+                "description": "The number of unpowered items which have been repaired.",
+                "type": "number"
+              },
+              "fixed_devices": {
+                "title": "fixed_devices",
+                "description": "fixed_powered + fixed_unpowered",
+                "type": "number"
+              },
+              "repairable_devices": {
+                "title": "repairable_devices",
+                "description": "The number of devices which were capable of being repaired.",
+                "type": "number"
+              },
+              "dead_devices": {
+                "title": "dead_devices",
+                "description": "The number of devices which were not capable of being repaired.",
+                "type": "number"
+              },
+              "unknown_repair_status": {
+                "title": "unknown_repair_status",
+                "description": "The number of devices where the repair status was not known.",
+                "type": "number"
+              },
+              "devices_powered": {
+                "title": "devices_powered",
+                "description": "The number of powered devices seen.",
+                "type": "number"
+              },
+              "devices_unpowered": {
+                "title": "devices_unpowered",
+                "description": "The number of unpowered devices seen.",
+                "type": "number"
+              },
+              "no_weight_powered": {
+                "title": "no_weight_powered",
+                "description": "The number of powered devices where no weight was provided.",
+                "type": "number"
+              },
+              "no_weight_unpowered": {
+                "title": "no_weight_unpowered",
+                "description": "The number of unpowered devices where no weight was provided.",
+                "type": "number"
+              },
+              "participants": {
+                "title": "participants",
+                "description": "The number of people who attended.",
+                "type": "number"
+              },
+              "volunteers": {
+                "title": "volunteers",
+                "description": "The number of volunteers.",
+                "type": "number"
+              },
+              "hours_volunteered": {
+                "title": "hours_volunteered",
+                "description": "The estimated number of hours volunteered for this group.",
+                "type": "number"
+              },
+              "events": {
+                "title": "events",
+                "description": "The number of events created by this group.",
+                "type": "number"
+              }
+            },
+            "type": "object",
+            "format": "object"
+          },
+          "updated_at": {
+            "title": "updated_at",
+            "description": "The last change to this group.  This includes changes which affect the stats.",
+            "format": "date-time"
+          },
+          "archived_at": {
+            "title": "archived_at",
+            "description": "If present, this group has been archived and is no longer active.",
+            "format": "date-time"
+          }
+        },
+        "type": "object"
+      },
+      "GroupCollection": {
+        "title": "GroupCollection",
+        "description": "A collection of groups.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Group"
+        }
+      },
+      "GroupLocation": {
+        "title": "GroupLocation",
+        "description": "The information about the location of a group.",
+        "properties": {
+          "area": {
+            "description": "The free-form area that this group is in.",
+            "format": "string",
+            "example": "London"
+          },
+          "location": {
+            "description": "The location that this group is in.  Must be geocodable.",
+            "format": "string",
+            "example": "College Road, London NW10 5EX, UK"
+          },
+          "country": {
+            "description": "The free-form country (translated if translations are available in the current language).",
+            "format": "string",
+            "example": "United Kingdom"
+          },
+          "country_code": {
+            "description": "The two-letter ISO country code.",
+            "format": "string",
+            "example": "GB"
+          },
+          "lat": {
+            "title": "lat",
+            "description": "Latitude of the group.",
+            "format": "float",
+            "example": "50.8113243"
+          },
+          "lng": {
+            "title": "lng",
+            "description": "Longitude of the group.",
+            "format": "float",
+            "example": "-1.0788839"
+          },
+          "postcode": {
+            "title": "postcode",
+            "description": "The group postcode",
+            "format": "string",
+            "example": "SW9 7QD"
+          }
+        },
+        "type": "object"
+      },
+      "GroupSummary": {
+        "title": "GroupSummary",
+        "description": "The very basic information about a group.  For full information, fetch the group.",
+        "required": ["id", "summary"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this group",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "title": "name",
+            "description": "Unique name of this group",
+            "format": "string",
+            "example": "Restarters HQ"
+          },
+          "image": {
+            "title": "image",
+            "description": "URL of an image for this group.  You should prefix this with /uploads before use.",
+            "format": "string",
+            "example": "/mid_1597853610178a4b76e4d666b2a7b32ee75d8a24c706f1cbf213970.png"
+          },
+          "location": {
+            "$ref": "#/components/schemas/GroupLocation"
+          },
+          "networks": {
+            "title": "networks",
+            "description": "An array of networks of which the group is a member.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSummary"
+            }
+          },
+          "group_tags_full": {
+            "title": "group_tags_full",
+            "description": "Tags on this group.  Only present on calls which load them, e.g. the summary list.",
+            "type": "array",
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "network_id": {
+                  "type": "integer",
+                  "nullable": true
+                }
+              },
+              "type": "object"
+            }
+          },
+          "updated_at": {
+            "title": "updated_at",
+            "description": "The last change to this group.  This includes changes which affect the stats.",
+            "format": "date-time"
+          },
+          "next_event": {
+            "$ref": "#/components/schemas/EventSummary"
+          },
+          "hosts": {
+            "title": "hosts",
+            "description": "The number of hosts of this group (if requested via API call flag).",
+            "type": "number"
+          },
+          "restarters": {
+            "title": "hosts",
+            "description": "The number of restarters in this group (if requested via API call flag).",
+            "type": "number"
+          },
+          "summary": {
+            "title": "summary",
+            "description": "Indicates that this is a summary result, not full group information.",
+            "format": "boolean",
+            "example": "true"
+          },
+          "archived_at": {
+            "title": "archived_at",
+            "description": "If present, this group has been archived and is no longer active.",
+            "format": "date-time"
+          }
+        },
+        "type": "object"
+      },
+      "GroupSummaryCollection": {
+        "title": "GroupSummaryCollection",
+        "description": "A collection of group summaries.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/GroupSummary"
+        }
+      },
+      "Image": {
+        "title": "Image",
+        "description": "An image of a Device",
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "The unique id of this image",
+            "format": "number",
+            "example": "1"
+          },
+          "path": {
+            "title": "path",
+            "description": "The path to the image",
+            "format": "string",
+            "example": "true"
+          }
+        },
+        "type": "object"
+      },
+      "Item": {
+        "title": "Item",
+        "description": "An item which can be specified in a Device",
+        "properties": {
+          "type": {
+            "title": "type",
+            "description": "The name of the item",
+            "format": "string",
+            "example": "Laptop"
+          },
+          "powered": {
+            "title": "powered",
+            "description": "Whether the item is powered (true) or unpowered (false)",
+            "format": "boolean",
+            "example": "true"
+          },
+          "idcategories": {
+            "title": "idcategories",
+            "description": "The id of the category for this item",
+            "format": "int64",
+            "example": "16"
+          },
+          "categoryname": {
+            "title": "categoryname",
+            "description": "The name of the category for this item",
+            "format": "string",
+            "example": "Laptop medium"
+          }
+        },
+        "type": "object"
+      },
+      "ItemCollection": {
+        "title": "ItemCollection",
+        "description": "A collection of items.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Item"
+        }
+      },
+      "Network": {
+        "title": "Network",
+        "description": "A network of Groups using the Restarters platform.",
+        "required": ["id", "full"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this network",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "title": "name",
+            "description": "Unique name of this network",
+            "format": "string",
+            "example": "Default Network"
+          },
+          "logo": {
+            "title": "image",
+            "description": "URL of a logo for this network.",
+            "format": "string",
+            "example": "/mid_1597853610178a4b76e4d666b2a7b32ee75d8a24c706f1cbf213970.png"
+          },
+          "description": {
+            "title": "description",
+            "description": "HTML description of the network.",
+            "format": "string",
+            "example": "<p>This is a description.</p>"
+          },
+          "website": {
+            "title": "website",
+            "description": "An URL for the networks's own separate website.",
+            "format": "string",
+            "example": "https://therestartproject.org"
+          },
+          "shortname": {
+            "title": "shortname",
+            "description": "A short name for the network..",
+            "format": "string",
+            "example": "resarters"
+          },
+          "default_language": {
+            "title": "default_language",
+            "description": "The default language for users in this network.",
+            "format": "string",
+            "example": "fr-BE"
+          },
+          "timezone": {
+            "title": "timezone",
+            "description": "Default timezone for this network.",
+            "format": "string",
+            "example": "Europe/London"
+          },
+          "stats": {
+            "title": "stats",
+            "description": "An array of statistics about the activity of a network.",
+            "properties": {
+              "co2_powered": {
+                "title": "co2_powered",
+                "description": "The amount of CO2 saved by repairing powered items.",
+                "type": "number"
+              },
+              "co2_unpowered": {
+                "title": "co2_unpowered",
+                "description": "The amount of CO2 saved by repairing unpowered items.",
+                "type": "number"
+              },
+              "co2_total": {
+                "title": "co2_total",
+                "description": "co2_powered + co2_unpowered",
+                "type": "number"
+              },
+              "waste_powered": {
+                "title": "waste_powered",
+                "description": "The weight in kg of waste saved by repairing powered items.",
+                "type": "number"
+              },
+              "waste_unpowered": {
+                "title": "waste_unpowered",
+                "description": "The weight in kg of waste saved by repairing unpowered items.",
+                "type": "number"
+              },
+              "fixed_powered": {
+                "title": "fixed_powered",
+                "description": "The number of powered items which have been repaired.",
+                "type": "number"
+              },
+              "fixed_unpowered": {
+                "title": "fixed_unpowered",
+                "description": "The number of unpowered items which have been repaired.",
+                "type": "number"
+              },
+              "fixed_devices": {
+                "title": "fixed_devices",
+                "description": "fixed_powered + fixed_unpowered",
+                "type": "number"
+              },
+              "repairable_devices": {
+                "title": "repairable_devices",
+                "description": "The number of devices which were capable of being repaired.",
+                "type": "number"
+              },
+              "dead_devices": {
+                "title": "dead_devices",
+                "description": "The number of devices which were not capable of being repaired.",
+                "type": "number"
+              },
+              "unknown_repair_status": {
+                "title": "unknown_repair_status",
+                "description": "The number of devices where the repair status was not known.",
+                "type": "number"
+              },
+              "devices_powered": {
+                "title": "devices_powered",
+                "description": "The number of powered devices seen.",
+                "type": "number"
+              },
+              "devices_unpowered": {
+                "title": "devices_unpowered",
+                "description": "The number of unpowered devices seen.",
+                "type": "number"
+              },
+              "no_weight_powered": {
+                "title": "no_weight_powered",
+                "description": "The number of powered devices where no weight was provided.",
+                "type": "number"
+              },
+              "no_weight_unpowered": {
+                "title": "no_weight_unpowered",
+                "description": "The number of unpowered devices where no weight was provided.",
+                "type": "number"
+              },
+              "participants": {
+                "title": "participants",
+                "description": "The number of people who attended.",
+                "type": "number"
+              },
+              "volunteers": {
+                "title": "volunteers",
+                "description": "The number of volunteers.",
+                "type": "number"
+              },
+              "hours_volunteered": {
+                "title": "hours_volunteered",
+                "description": "The estimated number of hours volunteered for this network.",
+                "type": "number"
+              },
+              "events": {
+                "title": "events",
+                "description": "The number of events created by this network.",
+                "type": "number"
+              },
+              "full": {
+                "title": "full",
+                "description": "Indicates that this is a full result, not summary network information.",
+                "format": "boolean",
+                "example": "true"
+              }
+            },
+            "type": "object",
+            "format": "object"
+          },
+          "updated_at": {
+            "title": "updated_at",
+            "description": "The last change to this network.  This includes changes which affect the stats.",
+            "format": "date-time"
+          }
+        },
+        "type": "object"
+      },
+      "NetworkSummary": {
+        "title": "NetworkSummary",
+        "description": "The summary information about a network.  For the full information, fetch the network.",
+        "required": ["id", "summary"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this network",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "title": "name",
+            "description": "Unique name of this network",
+            "format": "string",
+            "example": "Default Network"
+          },
+          "logo": {
+            "title": "image",
+            "description": "URL of a logo for this network.  You should prefix this with /uploads before use.",
+            "format": "string",
+            "example": "/mid_1597853610178a4b76e4d666b2a7b32ee75d8a24c706f1cbf213970.png"
+          },
+          "summary": {
+            "title": "summary",
+            "description": "Indicates that this is a summary result, not full network information.",
+            "format": "boolean",
+            "example": "true"
+          }
+        },
+        "type": "object"
+      },
+      "NetworkSummaryCollection": {
+        "title": "NetworkSummaryCollection",
+        "description": "A collection of network summaries.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NetworkSummary"
+        }
+      },
+      "Event": {
+        "title": "Event",
+        "description": "The full information about an event.",
+        "required": ["id", "full"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this event",
+            "format": "int64",
+            "example": 1
+          },
+          "start": {
+            "title": "start",
+            "description": "Start time of the event in ISO8601 format.",
+            "format": "date-time",
+            "example": "2022-09-18T11:30:00+00:00"
+          },
+          "end": {
+            "title": "end",
+            "description": "End time of the event in ISO8601 format",
+            "format": "date-time",
+            "example": "2022-09-18T12:30:00+00:00"
+          },
+          "timezone": {
+            "title": "timezone",
+            "description": "Timezone in which the event is taking place.",
+            "format": "string",
+            "example": "Europe/London"
+          },
+          "title": {
+            "title": "title",
+            "description": "Title of the event",
+            "format": "string",
+            "example": "Europe/London"
+          },
+          "description": {
+            "title": "description",
+            "description": "A description of the event.  May contain HTML",
+            "format": "string",
+            "example": "Come along and we'll fix your broken electrical items."
+          },
+          "location": {
+            "title": "location",
+            "description": "Human-readable address of the event",
+            "format": "string",
+            "example": "Europe/London"
+          },
+          "lat": {
+            "title": "lat",
+            "description": "Latitude at which the event is taking place.  Only valid if online=false.",
+            "format": "float",
+            "example": "50.8113243"
+          },
+          "online": {
+            "title": "online",
+            "description": "Whether this event is online (virtual).",
+            "format": "boolean",
+            "example": "false"
+          },
+          "lng": {
+            "title": "lng",
+            "description": "Longitude at which the event is taking place.  Only valid if online=false.",
+            "format": "float",
+            "example": "-1.0788839"
+          },
+          "group": {
+            "$ref": "#/components/schemas/GroupSummary"
+          },
+          "link": {
+            "title": "link",
+            "description": "Optional web link",
+            "type": "string"
+          },
+          "approved": {
+            "title": "hosts",
+            "description": "Whether the event has been approved",
+            "type": "boolean"
+          },
+          "network_data": {
+            "description": "Network-defined JSON data"
+          },
+          "stats": {
+            "title": "stats",
+            "description": "An array of statistics about the activity of an event.",
+            "properties": {
+              "co2_powered": {
+                "title": "co2_powered",
+                "description": "The amount of CO2 saved by repairing powered items.",
+                "type": "number"
+              },
+              "co2_unpowered": {
+                "title": "co2_unpowered",
+                "description": "The amount of CO2 saved by repairing unpowered items.",
+                "type": "number"
+              },
+              "co2_total": {
+                "title": "co2_total",
+                "description": "co2_powered + co2_unpowered",
+                "type": "number"
+              },
+              "waste_powered": {
+                "title": "waste_powered",
+                "description": "The weight in kg of waste saved by repairing powered items.",
+                "type": "number"
+              },
+              "waste_unpowered": {
+                "title": "waste_unpowered",
+                "description": "The weight in kg of waste saved by repairing unpowered items.",
+                "type": "number"
+              },
+              "fixed_powered": {
+                "title": "fixed_powered",
+                "description": "The number of powered items which have been repaired.",
+                "type": "number"
+              },
+              "fixed_unpowered": {
+                "title": "fixed_unpowered",
+                "description": "The number of unpowered items which have been repaired.",
+                "type": "number"
+              },
+              "fixed_devices": {
+                "title": "fixed_devices",
+                "description": "fixed_powered + fixed_unpowered",
+                "type": "number"
+              },
+              "repairable_devices": {
+                "title": "repairable_devices",
+                "description": "The number of devices which were capable of being repaired.",
+                "type": "number"
+              },
+              "dead_devices": {
+                "title": "dead_devices",
+                "description": "The number of devices which were not capable of being repaired.",
+                "type": "number"
+              },
+              "unknown_repair_status": {
+                "title": "unknown_repair_status",
+                "description": "The number of devices where the repair status was not known.",
+                "type": "number"
+              },
+              "devices_powered": {
+                "title": "devices_powered",
+                "description": "The number of powered devices seen.",
+                "type": "number"
+              },
+              "devices_unpowered": {
+                "title": "devices_unpowered",
+                "description": "The number of unpowered devices seen.",
+                "type": "number"
+              },
+              "no_weight_powered": {
+                "title": "no_weight_powered",
+                "description": "The number of powered devices where no weight was provided.",
+                "type": "number"
+              },
+              "no_weight_unpowered": {
+                "title": "no_weight_unpowered",
+                "description": "The number of unpowered devices where no weight was provided.",
+                "type": "number"
+              },
+              "participants": {
+                "title": "participants",
+                "description": "The number of people who attended.",
+                "type": "number"
+              },
+              "volunteers": {
+                "title": "volunteers",
+                "description": "The number of volunteers.",
+                "type": "number"
+              },
+              "hours_volunteered": {
+                "title": "hours_volunteered",
+                "description": "The estimated number of hours volunteered for this event.",
+                "type": "number"
+              }
+            },
+            "type": "object",
+            "format": "object"
+          },
+          "updated_at": {
+            "title": "updated_at",
+            "description": "The last change to this group.  This includes changes which affect the stats.",
+            "format": "date-time"
+          },
+          "full": {
+            "title": "full",
+            "description": "Indicates that this is a full result, not summary group information.",
+            "format": "boolean",
+            "example": "true"
+          }
+        },
+        "type": "object"
+      },
+      "EventCollection": {
+        "title": "EventCollection",
+        "description": "A collection of events.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Event"
+        }
+      },
+      "EventSummary": {
+        "title": "EventSummary",
+        "description": "The basic information about an event.  For full information, fetch the event.",
+        "required": ["id", "summary"],
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this event",
+            "format": "int64",
+            "example": 1
+          },
+          "start": {
+            "title": "start",
+            "description": "Start time of the event in ISO8601 format.",
+            "format": "date-time",
+            "example": "2022-09-18T11:30:00+00:00"
+          },
+          "end": {
+            "title": "end",
+            "description": "End time of the event in ISO8601 format",
+            "format": "date-time",
+            "example": "2022-09-18T12:30:00+00:00"
+          },
+          "timezone": {
+            "title": "timezone",
+            "description": "Timezone in which the event is taking place.",
+            "format": "string",
+            "example": "Europe/London"
+          },
+          "title": {
+            "title": "title",
+            "description": "Title of the event",
+            "format": "string",
+            "example": "Repair Cafe"
+          },
+          "location": {
+            "title": "location",
+            "description": "Human-readable address of the event",
+            "format": "string",
+            "example": "Village Hall, Main Street, Anytown, UK"
+          },
+          "online": {
+            "title": "online",
+            "description": "Whether this event is online (virtual).",
+            "format": "boolean",
+            "example": "false"
+          },
+          "lat": {
+            "title": "lat",
+            "description": "Latitude at which the event is taking place.  Only valid if online=false.",
+            "format": "float",
+            "example": "50.8113243"
+          },
+          "lng": {
+            "title": "lng",
+            "description": "Longitude at which the event is taking place.  Only valid if online=false.",
+            "format": "float",
+            "example": "-1.0788839"
+          },
+          "group": {
+            "$ref": "#/components/schemas/GroupSummary"
+          },
+          "approved": {
+            "title": "approved",
+            "description": "Whether this event has been approved.",
+            "format": "boolean",
+            "example": "false"
+          },
+          "updated_at": {
+            "title": "updated_at",
+            "description": "The last change to this group.  This includes changes which affect the stats.",
+            "format": "date-time"
+          },
+          "summary": {
+            "title": "summary",
+            "description": "Indicates that this is a summary result, not full group information.",
+            "format": "boolean",
+            "example": "true"
+          }
+        },
+        "type": "object"
+      },
+      "EventSummaryCollection": {
+        "title": "EventSummaryCollection",
+        "description": "A collection of event summaries.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/EventSummary"
+        }
+      },
+      "Skill": {
+        "title": "Skill",
+        "description": "A skill possessed by a volunteer.",
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this skill",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "title": "name",
+            "description": "Name of this skill",
+            "format": "string",
+            "example": "First aid"
+          },
+          "description": {
+            "title": "description",
+            "description": "Optional description of this skill",
+            "format": "string",
+            "example": "This is for qualified First Aiders to identify themselves to event organisers"
+          },
+          "category": {
+            "title": "category",
+            "description": "Category of this skill",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "type": "object"
+      },
+      "SkillCollection": {
+        "title": "SkillCollection",
+        "description": "A collection of volunteer skills.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Skill"
+        }
+      },
+      "Tag": {
+        "title": "Tag",
+        "description": "A tag to record something about a group.",
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this tag",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "title": "name",
+            "description": "Unique name of this tag",
+            "format": "string",
+            "example": "Scotland"
+          },
+          "description": {
+            "title": "description",
+            "description": "What this tag is for",
+            "format": "string",
+            "example": "Groups in Scotland"
+          },
+          "network_id": {
+            "title": "network_id",
+            "description": "Network this tag belongs to (null for global tags)",
+            "format": "int64",
+            "example": 1,
+            "nullable": true
+          },
+          "network_name": {
+            "title": "network_name",
+            "description": "Name of the network this tag belongs to (null for global tags)",
+            "format": "string",
+            "example": "MRES",
+            "nullable": true
+          },
+          "groups_count": {
+            "title": "groups_count",
+            "description": "Number of groups that have this tag applied",
+            "format": "int64",
+            "example": 5
+          }
+        },
+        "type": "object"
+      },
+      "TagCollection": {
+        "title": "TagCollection",
+        "description": "A collection of group tags.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Tag"
+        }
+      },
+      "Volunteer": {
+        "title": "Volunteer",
+        "description": "A volunteer on a group or event.",
+        "properties": {
+          "id": {
+            "title": "id",
+            "description": "Unique identifier of this record (i.e. the event/group and user combination)",
+            "format": "int64",
+            "example": 1
+          },
+          "user": {
+            "title": "user",
+            "description": "Unique identifier of this volunteer's user record",
+            "format": "int64",
+            "example": 2
+          },
+          "name": {
+            "title": "name",
+            "description": "The volunteer's name",
+            "format": "string",
+            "example": "Sam"
+          },
+          "email": {
+            "title": "email",
+            "description": "The volunteer's email address. Only included when the authenticated user is a group host, network coordinator, or admin.",
+            "format": "string",
+            "example": "sam@example.com",
+            "nullable": true
+          },
+          "host": {
+            "title": "host",
+            "description": "Whether the volunteer is a host of the event/group",
+            "format": "boolean",
+            "example": "false"
+          },
+          "image": {
+            "title": "image",
+            "description": "URL of an image for this user.  You should prefix this with /uploads before use.",
+            "format": "string",
+            "example": "/mid_1597853610178a4b76e4d666b2a7b32ee75d8a24c706f1cbf213970.png"
+          }
+        },
+        "type": "object"
+      },
+      "VolunteerCollection": {
+        "title": "VolunteerCollection",
+        "description": "A collection of volunteers for a group or event.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Volunteer"
+        }
+      },
+      "OrdsRepair": {
+        "title": "OrdsRepair",
+        "description": "A repair record in Open Repair Data Standard v0.3. Columns and their order follow the standard; every missing value is null in JSON and an empty string in CSV.",
+        "properties": {
+          "id": {
+            "description": "Stable identifier the consumer upserts on, namespaced by the instance's assigned prefix.",
+            "type": "string",
+            "example": "restarters_12345"
+          },
+          "data_provider": {
+            "description": "Organisation publishing the record.",
+            "type": "string",
+            "example": "The Restart Project"
+          },
+          "country": {
+            "description": "ISO 3166-1 alpha-3 country of the event's group.",
+            "type": "string",
+            "example": "GBR",
+            "nullable": true
+          },
+          "partner_product_category": {
+            "description": "Our own category, plus the free-text item type where present.",
+            "type": "string",
+            "example": "Desktop computer ~ Tower PC",
+            "nullable": true
+          },
+          "product_category": {
+            "description": "The standard's category name.",
+            "type": "string",
+            "example": "Desktop computer",
+            "nullable": true
+          },
+          "product_category_id": {
+            "description": "The standard's category id. Null for unpowered items, which the standard publishes without one.",
+            "type": "integer",
+            "example": 4,
+            "nullable": true
+          },
+          "brand": {
+            "type": "string",
+            "example": "Dell",
+            "nullable": true
+          },
+          "year_of_manufacture": {
+            "description": "Derived from the event year minus the item's age; not stored directly.",
+            "type": "string",
+            "example": "2015",
+            "nullable": true
+          },
+          "product_age": {
+            "description": "Age in years at the time of the event. Null when not recorded.",
+            "type": "number",
+            "example": 7,
+            "nullable": true
+          },
+          "repair_status": {
+            "type": "string",
+            "enum": ["Fixed", "Repairable", "End of life", "Unknown"],
+            "example": "Fixed"
+          },
+          "repair_barrier_if_end_of_life": {
+            "description": "Only set when repair_status is End of life.",
+            "type": "string",
+            "example": "Spare parts unavailable",
+            "nullable": true
+          },
+          "group_identifier": {
+            "description": "Name of the group that ran the event.",
+            "type": "string",
+            "example": "Restarters HQ",
+            "nullable": true
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2022-09-18",
+            "nullable": true
+          },
+          "problem": {
+            "description": "Volunteer-written description of the fault, with contact details and identifiers redacted. Personal names are not pattern-detectable and are not removed. Empty unless the instance sets ORDS_INCLUDE_PROBLEM, and redacted unless it also sets ORDS_SCRUB_PROBLEM=false.",
+            "type": "string",
+            "example": "Screen flickers when the lid is moved",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "name": "api_token",
+        "in": "query"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Alerts",
+      "description": "Alerts"
+    },
+    {
+      "name": "Devices",
+      "description": "Devices"
+    },
+    {
+      "name": "Events",
+      "description": "Events"
+    },
+    {
+      "name": "Groups",
+      "description": "Groups"
+    },
+    {
+      "name": "Volunteers",
+      "description": "Volunteers"
+    },
+    {
+      "name": "Items",
+      "description": "Items"
+    },
+    {
+      "name": "Networks",
+      "description": "Networks"
+    },
+    {
+      "name": "Repairs",
+      "description": "Repairs"
+    }
+  ]
+}

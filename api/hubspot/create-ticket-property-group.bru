@@ -1,0 +1,23 @@
+meta {
+  name: Create ticket property group (sandbox)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{hubspotBase}}/crm/v3/properties/tickets/groups
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "repair_cafe_info",
+    "label": "Repair Cafe Info",
+    "displayOrder": -1
+  }
+}
+
+docs {
+  Sandbox only. The group already exists on the live portal. Returns 409 if it exists.
+}

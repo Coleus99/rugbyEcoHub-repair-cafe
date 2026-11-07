@@ -1,0 +1,23 @@
+meta {
+  name: Update ticket
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{hubspotBase}}/crm/v3/objects/tickets/{{ticketId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "properties": {
+      "hs_ticket_priority": "MEDIUM"
+    }
+  }
+}
+
+docs {
+  Writes to HubSpot. Use a test ticket only.
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get group names
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{restartersBase}}/api/v2/groups/names
+  body: none
+  auth: none
+}
+
+docs {
+  Use this to find the Rugby Repair Cafe group id, then set restartersGroupId in the dev environment.
+}

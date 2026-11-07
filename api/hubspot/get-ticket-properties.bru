@@ -1,0 +1,15 @@
+meta {
+  name: Get ticket properties
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{hubspotBase}}/crm/v3/properties/tickets
+  body: none
+  auth: inherit
+}
+
+docs {
+  Lists every ticket property and its options. Useful for choosing which fields the form edits.
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get group events
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{restartersBase}}/api/v2/groups/{{restartersGroupId}}/events
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  fixture: restarters_api/getGroupEventsResponse.json
+}

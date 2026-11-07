@@ -1,0 +1,28 @@
+docs {
+  Restarters and HubSpot requests for the Repair Cafe build.
+  
+  Secrets live in api/.env (gitignored), e.g.
+    HUBSPOT_TOKEN=pat-...
+    RESTARTERS_TOKEN=...
+  
+  Set a request var `fixture` (path under docs/) to save the response body there.
+  Saving needs the collection in Developer Mode (Safe Mode blocks require("fs")).
+  With the CLI, pass --sandbox developer.
+  Trim long lists and remove personal data before committing a fixture.
+}
+
+script:post-response {
+  const fixture = bru.getRequestVar("fixture");
+  if (fixture && res.getStatus() < 300) {
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const target = path.join(bru.cwd(), "..", "docs", fixture);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, JSON.stringify(res.getBody(), null, 2) + "\n");
+      console.log("Saved fixture:", target);
+    } catch (err) {
+      console.log("Fixture not saved (switch the collection to Developer Mode to enable):", err.message);
+    }
+  }
+}

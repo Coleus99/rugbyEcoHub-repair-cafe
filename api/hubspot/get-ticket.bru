@@ -1,0 +1,15 @@
+meta {
+  name: Get ticket
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{hubspotBase}}/crm/v3/objects/tickets/{{ticketId}}?properties={{ticketProperties}}
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  fixture: hubspot_api/getTicketResponse.json
+}

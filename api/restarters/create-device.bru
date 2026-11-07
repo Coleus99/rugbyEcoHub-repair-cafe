@@ -1,0 +1,40 @@
+meta {
+  name: Create device
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{restartersBase}}/api/v2/devices?api_token={{process.env.RESTARTERS_TOKEN}}
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  api_token: {{process.env.RESTARTERS_TOKEN}}
+}
+
+body:multipart-form {
+  eventid: {{restartersEventId}}
+  category: 16
+  item_type: Laptop
+  brand: Dell
+  model: Inspiron 15
+  problem: Would not power on, charging light flashed yellow twice. Replaced faulty DC power jack soldered onto the motherboard.
+  notes: Owner said it stopped charging after the cable was yanked out.
+  age: 6
+  spare_parts: Third party
+  repair_status: Fixed
+}
+
+docs {
+  Writes to live Restarters data. Use a test event.
+  
+  Required: category, item_type. category ids are listed in docs/restarters_api/README.md.
+  There is no repair_details field. "problem" holds both the problem and the fix.
+  Response is { id, device, stats }, not { data } as the spec says. Copy the top-level id into restartersDeviceId in the dev environment.
+  age: years, approximate is fine. 0 means unknown.
+  spare_parts: No / Manufacturer / Third party. The spec says Repairable only. This request tests it on a Fixed item.
+  next_steps only applies when repair_status is Repairable.
+  barrier only applies when repair_status is End of life.
+}

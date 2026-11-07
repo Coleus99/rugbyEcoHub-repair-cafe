@@ -1,0 +1,15 @@
+meta {
+  name: Get networks
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{restartersBase}}/api/v2/networks
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  fixture: restarters_api/getNetworksResponse.json
+}

@@ -1,0 +1,41 @@
+meta {
+  name: Update device
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{restartersBase}}/api/v2/devices/{{restartersDeviceId}}?api_token={{process.env.RESTARTERS_TOKEN}}
+  body: formUrlEncoded
+  auth: none
+}
+
+params:query {
+  api_token: {{process.env.RESTARTERS_TOKEN}}
+}
+
+body:form-urlencoded {
+  eventid: {{restartersEventId}}
+  category: 16
+  item_type: Laptop
+  brand: Dell
+  model: Inspiron 15 3520
+  problem: Would not power on, charging light flashed yellow twice. Replaced faulty DC power jack soldered onto the motherboard. Edited via API.
+  notes: Edited via API test.
+  age: 7
+  spare_parts: Manufacturer
+  repair_status: Fixed
+}
+
+vars:pre-request {
+  fixture: restarters_api/updateDeviceResponse.json
+}
+
+docs {
+  Sent as form-urlencoded, not multipart as the spec says. PHP does not parse multipart bodies on PATCH requests, so fields sent that way are silently ignored.
+  If this returns 200 but nothing changes, that is the cause.
+  
+  eventid is required on update too, even though the spec doesn't list it.
+  Sends the full field set. It's not documented whether omitted fields are kept or cleared.
+  Run Get device afterwards to check the edit stuck.
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get items
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{restartersBase}}/api/v2/items
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  fixture: restarters_api/getItemsResponse.json
+}

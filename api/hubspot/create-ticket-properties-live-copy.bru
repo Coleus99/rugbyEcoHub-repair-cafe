@@ -1,0 +1,50 @@
+meta {
+  name: Create live ticket properties (sandbox)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{hubspotBase}}/crm/v3/properties/tickets/batch/create
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "inputs": [
+      {
+        "name": "repair_item_brand",
+        "label": "Repair Item Brand",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "repair_cafe_info",
+        "description": "Brand or manufacturer. Sent to Restarters as brand.",
+        "formField": true
+      },
+      {
+        "name": "repair_item_year_made",
+        "label": "Repair Item Year Made",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "repair_cafe_info",
+        "description": "Year the item was made. Restarters age = event year minus this.",
+        "formField": true
+      },
+      {
+        "name": "requested_repair_date",
+        "label": "requested repair date",
+        "type": "date",
+        "fieldType": "date",
+        "groupName": "repair_cafe_info",
+        "description": "Repair date the customer asked for.",
+        "formField": true
+      }
+    ]
+  }
+}
+
+docs {
+  Sandbox only. Copies the live portal's brand, year made and requested date properties so the sandbox matches live.
+  Never run against live. Same definitions as docs/hubspot_api/ticket-properties.json.
+}

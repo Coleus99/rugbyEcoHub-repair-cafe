@@ -1,0 +1,20 @@
+meta {
+  name: Delete device
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{restartersBase}}/api/v2/devices/{{restartersDeviceId}}?api_token={{process.env.RESTARTERS_TOKEN}}
+  body: none
+  auth: none
+}
+
+params:query {
+  api_token: {{process.env.RESTARTERS_TOKEN}}
+}
+
+docs {
+  Permanently removes the device from the event and its stats.
+  Run Get device afterwards. Expect a 404.
+}

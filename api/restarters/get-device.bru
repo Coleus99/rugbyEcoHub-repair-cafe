@@ -1,0 +1,15 @@
+meta {
+  name: Get device
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{restartersBase}}/api/v2/devices/{{restartersDeviceId}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  fixture: restarters_api/getDeviceResponse.json
+}
