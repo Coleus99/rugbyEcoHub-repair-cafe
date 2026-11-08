@@ -1,0 +1,31 @@
+{
+  "id": "448850507989",
+  "properties": {
+    "closed_date": null,
+    "content": "Won't pop",
+    "createdate": "2026-11-08T20:17:22.577Z",
+    "hs_lastmodifieddate": "2026-11-08T20:17:26.164Z",
+    "hs_object_id": "448850507989",
+    "hs_pipeline": "0",
+    "hs_pipeline_stage": "1",
+    "repair_barrier": null,
+    "repair_item_brand": "toastmaster",
+    "repair_item_model": "4000",
+    "repair_item_type": null,
+    "repair_item_weight_kg": null,
+    "repair_item_year_made": "1999",
+    "repair_next_steps": null,
+    "repair_notes": null,
+    "repair_problem_and_fix": null,
+    "repair_spare_parts": null,
+    "requested_repair_date": null,
+    "restarters_category": "43",
+    "restarters_device_id": null,
+    "restarters_event_id": null,
+    "subject": "Toaster"
+  },
+  "createdAt": "2026-11-08T20:17:22.577Z",
+  "updatedAt": "2026-11-08T20:17:26.164Z",
+  "archived": false,
+  "url": "https://app-eu1.hubspot.com/contacts/149627376/record/0-5/448850507989"
+}

@@ -80,39 +80,67 @@ The live portal already has a repair form that creates tickets. The new form kee
 | Category | `restarters_category` | `category` | **New.** Replaces `repair_item_category`. |
 | Item type | `repair_item_type` | `item_type` (required) | **New.** Set by volunteers in the app, not on the booking form. |
 | Model | `repair_item_model` | `model` | **New** |
-| Weight (kg) | `repair_item_weight_kg` | `estimate` | **New** |
+| Weight (kg) | `repair_item_weight_kg` | `estimate` | **New.** Only asked for and sent for the Misc categories (46, 50). Restarters uses its own average weight for the rest. |
 | Problem and fix | `repair_problem_and_fix` | `problem` | **New** |
 | Notes | `repair_notes` | `notes` | **New** |
-| Outcome | `repair_outcome` | `repair_status` | **New** |
+| Outcome | pipeline stage (`hs_pipeline_stage`) | `repair_status` | Set from the stage. `repair_outcome` exists but isn't used (see [Decisions](#decisions)). |
 | Spare parts | `repair_spare_parts` | `spare_parts` | **New** |
 | Next steps | `repair_next_steps` | `next_steps` | **New** |
 | Barrier | `repair_barrier` | `barrier` | **New** |
+| Fixer | `repair_fixer` (dropdown, current fixer) and `repair_fixers` (text, everyone assigned so far, added to by the app) | none | **New** (sandbox 8 November 2026, via `api/hubspot/create-fixer-properties.bru`). Add or remove fixers by editing the `repair_fixer` options in HubSpot. No code change is needed. Each device remembers the last fixer saved on it (browser storage only) and fills it in on a ticket with no fixer as soon as another field is edited (not on open, so viewing or printing changes nothing). |
 | Restarters ids | `restarters_device_id`, `restarters_event_id` | returned `id`, `eventid` | **New** |
-| Sync status | `restarters_sync_status`, `restarters_sync_error` | none | **To add.** Status options: Not synced, Synced, Error. |
+| Sync status | `restarters_sync_status`, `restarters_sync_error` | none | **New** (sandbox 8 November 2026, via `api/hubspot/create-sync-properties.bru`). Set by the app. Options: Not synced, Synced, Error. |
 
 The new properties exist in the **sandbox only**. For go-live, run Bruno's "Create ticket properties (new)" against the live portal. Don't run the two "(sandbox)" requests on live, because the live portal already has those properties.
 
 HubSpot can't rename a property's internal name. Mark old properties as legacy by changing the label only, for example "Legacy: Repair Item Category".
+
+## HubSpot ticket pipeline
+
+The sandbox reuses the default help desk pipeline, renamed "Repair Cafe", id `0`. HubSpot makes it hard to point a help desk form at another pipeline, and live only uses one pipeline anyway. Response saved in [docs/hubspot_api/getRepairCafePipelineResponse.json](docs/hubspot_api/getRepairCafePipelineResponse.json).
+
+| Stage | Id | State |
+|---|---|---|
+| New | `1` | Open |
+| In Progress | `2` | Open |
+| Needs follow-up | `6385083617` | Open |
+| Repaired | `3` | Open. **Should be Closed**, so HubSpot sets `closed_date` and the ticket leaves the list. |
+| Can't repair | `4` | Closed |
+| Won't repair | `6385079534` | Closed |
+| No show | `6385079535` | Closed |
+
+The app lists tickets in the Open stages and reads stage names and open/closed from HubSpot, so stages can be renamed or added without code changes. Only the pipeline id is configured, in `functions/.env.<project id>` (`HUBSPOT_PIPELINE_ID`). The app won't read or edit tickets in other pipelines.
 
 ## Next steps
 
 1. ~~Create the booking form in the HubSpot sandbox.~~ Done 8 November 2026, built in the HubSpot UI. `repair_item_type` was left off because customers wouldn't know what to put. The app fills it in (see [Decisions](#decisions)).
 2. ~~Create the Firebase projects.~~ Done. `repair-cafe-dev` is on Blaze with `HUBSPOT_TOKEN` (sandbox key) and `RESTARTERS_TOKEN` stored as secrets. `repair-cafe-prod` exists with its web app registered. It stays on the free plan with no secrets until the proof of concept is approved.
 3. ~~Scaffold the app.~~ Done. `web/` is Vite `react-ts`. `functions/` is TypeScript with one Express function, `api`, in `europe-west2`, which checks the Firebase ID token on every `/api` route. `firebase.json` rewrites `/api/**` to it.
-4. **Finish local config:** copy `web/.env.example` to `web/.env.development` and fill in the dev web app config. Create a test user in the Auth emulator.
-5. **Build the functions:**
-   - `GET /api/tickets`: open tickets in the Repair Cafe pipeline, sorted by status.
-   - `GET /api/tickets/:id` and `PATCH /api/tickets/:id`, allowing the listed properties only.
-   - Always save the ticket to HubSpot first. The Restarters sync runs after that, and a sync failure never blocks or undoes the HubSpot save.
-   - Sync to Restarters when a ticket moves to complete: create the device if there's no `restarters_device_id`, otherwise update it. Store the returned id on the ticket straight away.
-   - Find the event id by looking up today's Restarters event for group 116. Fixers add items to the current session, so the requested date isn't used. Save it to `restarters_event_id`.
-   - Record the result on the ticket: `restarters_sync_status` = Synced, or Error with the reason in `restarters_sync_error` (for example "No Restarters event on 21 Nov 2026").
-   - `POST /api/sync`: retry every ticket with status Error. Run it from a "Resync" button in the app once the host has fixed the cause. For tickets that never had an event id, use the event on the date the ticket was completed (HubSpot sets `closed_date` when a ticket moves to a closed stage), not the date of the retry.
-   - `DELETE /api/tickets/:id/restarters`: remove the device and clear the id.
-6. **Build the pages:** ticket list, ticket detail and edit form, and a print view (A4 and Dymo label) with a QR code linking to `/tickets/:id`.
-7. **Test against the sandbox** using the Firebase emulators, then deploy to dev, then prod.
-8. **Go live:** upgrade `repair-cafe-prod` to Blaze, store the live HubSpot key and the Restarters token as its secrets, add `web/.env.production`, create the live ticket properties, then `firebase deploy --project prod`.
-9. Later: sync item images to Restarters. Move to individual logins if the shared one causes problems.
+4. ~~Finish local config and sign-in.~~ Done. `web/.env.development` and `web/.env.production` hold the public Firebase web config. Email sign-in, a route guard that returns you to the page you asked for, and placeholder pages are in place.
+5. ~~List and edit tickets.~~ Done. `GET /api/meta` (stages and dropdown options, cached for 5 minutes), `GET /api/tickets` (open tickets by stage, then booked date), `GET /api/tickets/:id` and `PATCH /api/tickets/:id` (editable properties only, changed fields only). The web app has the ticket list and the edit form.
+6. ~~Restarters sync.~~ Built, with unit tests. The client is tested against live Restarters (create, update, delete on the test event). The full save-and-sync flow still needs a manual end-to-end run (see [Testing the sync](#testing-the-sync)).
+   - Saving a ticket always writes to HubSpot first. If its stage maps to a Restarters status (`RESTARTERS_STAGE_STATUS`), the device is then created, or updated if `restarters_device_id` is set. A device deleted on Restarters by hand is recreated.
+   - The event is the stored `restarters_event_id`. Otherwise it's group 116's latest event on or before the day the ticket closed (`closed_date`, or today for open stages such as Needs follow-up). That's the day's session if it exists, otherwise the most recent one. Dev uses the test event in `RESTARTERS_EVENT_ID` instead.
+   - The result goes on the ticket: `restarters_sync_status` and `restarters_sync_error`. Missing category, item type, barrier or next steps are caught before calling Restarters, with a message saying what to fill in.
+   - `POST /api/tickets/:id/sync` (Resync now), `POST /api/sync` (Resync failed, from the list page) and `DELETE /api/tickets/:id/restarters` (Remove from Restarters).
+7. ~~Print view.~~ A4 job sheet: condensed booking details, a QR code to the ticket page, write-in boxes, and tick boxes for outcome, spare parts, next steps and barrier. The Dymo label is still to do.
+8. ~~Search.~~ Filters the open list by item name, first name, short reference and category (see [Search](#search-open-tickets-only-in-the-browser)).
+9. ~~Test against the sandbox.~~ Done 8 November 2026. Next, deploy to dev and try it on a phone, then prod.
+10. **Go live:** see [Go-live checklist](#go-live-checklist).
+11. Later: sync item images to Restarters. Move to individual logins if the shared one causes problems.
+
+## Go-live checklist
+
+Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
+
+1. **Live HubSpot key.** Create the service key in the live portal with ticket read/write, `crm.objects.contacts.read`, `crm.schemas.tickets.write` (to create the properties) and forms read.
+2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties` and `create-fixer-properties`. Relabel the old properties as "Legacy: …".
+3. **Live pipeline.** Set up the stages to match the sandbox (New, In Progress, Needs follow-up, Repaired, Can't repair, Won't repair, No show), with Repaired, Can't repair, Won't repair and No show marked **Closed**. Point both booking forms (online and in-person) at it.
+4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
+5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`.
+6. **Config.** Create `functions/.env.repair-cafe-prod` with `HUBSPOT_PIPELINE_ID` and `RESTARTERS_STAGE_STATUS` using the live stage ids. Leave out `RESTARTERS_EVENT_ID` so items go on the real session. The live ids can be read with Bruno's pipeline request once the live key is in `api/.env`.
+7. **Deploy:** `npm --prefix web run build && firebase deploy --project prod`.
+8. **Check:** sign in, open a real ticket, print it, scan the QR code on a phone, then sync one item and check it appears on that session's Restarters event.
 
 ## Local development
 
@@ -125,17 +153,42 @@ npm --prefix web install && npm --prefix functions install
 npm --prefix functions run build:watch
 
 # Terminal 2: emulators (Auth 9099, Functions 5001, Hosting 5002, UI 4000)
-firebase emulators:start --only auth,functions,hosting
+firebase emulators:start --only auth,functions,hosting --import=.emulator-data --export-on-exit
 
 # Terminal 3: web app with hot reload on http://localhost:5173
 npm --prefix web run dev
 ```
 
 - Vite proxies `/api` to the Functions emulator, so the function sees the same `/api/...` paths as it does behind Hosting.
-- In dev, the web app signs in against the Auth emulator (`web/src/lib/firebase.ts`). Create a test user in the emulator UI at http://127.0.0.1:4000.
+- In dev, the web app signs in against the Auth emulator (`web/src/lib/firebase.ts`). The login email is fixed to `repaircaferugby@gmail.com`, so create that user once in the emulator UI at http://127.0.0.1:4000. `--import/--export-on-exit` keeps it between runs (in `.emulator-data/`, gitignored). Restart the emulators after changing `functions/.env.*`.
 - The function reads secrets from `functions/.secret.local` under the emulator (gitignored).
 - The Hosting emulator uses port 5002 because macOS AirPlay Receiver uses 5000.
 - Calls to HubSpot from the emulator go to the real sandbox portal, and calls to Restarters go to live Restarters. Use test tickets and a test event.
+
+### Tests
+
+| Command | What it checks | Needs |
+|---|---|---|
+| `npm --prefix functions test` | API routes and the HubSpot client, with HubSpot faked using the saved responses in `docs/hubspot_api/` | Nothing |
+| `npm --prefix web test` | Form helpers (changed fields, item type suggestion) | Nothing |
+| `npm --prefix functions run test:sandbox` | Pipeline, properties and dropdowns exist in the sandbox. Edits `repair_notes` on the test ticket, then puts it back. | `functions/.secret.local` |
+| `npm --prefix functions run test:emulator` | Signs in to the Auth emulator and calls the running API end to end, including search. Read-only. | Emulators running |
+
+| `npm --prefix functions run test:restarters` | Creates, updates and deletes one device on the test event. **Live Restarters**, so run it rarely. | `RESTARTERS_TOKEN` |
+| `npm --prefix functions run seed:sandbox` | Not a test. Submits 10 example bookings through the real booking form and moves some along. Skips ones that exist. | Sandbox token |
+
+The sandbox and emulator tests use ticket `448850507989`. If it's deleted, set `TEST_TICKET_ID`. Only `test:restarters` calls Restarters. The sandbox test's first-name check needs the HubSpot key to have `crm.objects.contacts.read`.
+
+### Testing the sync
+
+This writes to live Restarters, on the 7 November test event (19168). Remove the device afterwards.
+
+1. Restart the emulators so they load `functions/.env.repair-cafe-dev`.
+2. Open a seeded ticket, e.g. Headphones. Set the item type, problem and fix, and spare parts, then set Status to Repaired and save. The save message should say "Synced to Restarters (device …)".
+3. Check the device on the event at https://restarters.net/party/view/19168.
+4. Edit the problem and fix and save again. It should update the same device, not add one.
+5. Try Can't repair with no barrier. It should save to HubSpot and show "Sync failed: Choose a barrier to repair." Pick a barrier, save, and it syncs.
+6. Press Remove from Restarters. Check it's gone from the event.
 
 Deploy to dev:
 
@@ -143,7 +196,7 @@ Deploy to dev:
 npm --prefix web run build && firebase deploy --project dev
 ```
 
-### Suggested layout
+### Layout
 
 ```
 web/                    Vite React app
@@ -151,11 +204,13 @@ web/                    Vite React app
   src/pages/TicketPage.tsx
   src/pages/TicketPrint.tsx
   src/lib/api.ts        fetch wrapper that adds the ID token
+  src/lib/ticketForm.ts form helpers (tested)
 functions/
-  src/index.ts          HTTP routes
-  src/hubspot.ts        getTickets, getTicket, updateTicket
-  src/restarters.ts     createDevice, updateDevice, deleteDevice, listEvents
-  src/auth.ts           verify ID token
+  src/index.ts          wires secrets and config into the app
+  src/app.ts            Express routes, validation, sign-in check
+  src/hubspot.ts        HubSpot client
+  src/restarters.ts     createDevice, updateDevice, deleteDevice, listEvents (to do)
+  test/unit, test/sandbox, test/emulator
 firebase.json
 .firebaserc             dev and prod aliases
 firestore.rules         deny all until needed
@@ -165,7 +220,7 @@ firestore.rules         deny all until needed
 
 ### Login: one shared account
 
-All volunteers sign in with a single Firebase email/password account, so getting started is easy. Changes are easy to correct if something goes wrong, and the paper forms are a backup. Individual logins (Firebase email link sign-in with an allowlist) are a later step if shared access causes conflicts.
+All volunteers sign in with a single Firebase email/password account, `repaircaferugby@gmail.com`. The sign-in page has the email fixed, so volunteers only type the password, so getting started is easy. Changes are easy to correct if something goes wrong, and the paper forms are a backup. Individual logins (Firebase email link sign-in with an allowlist) are a later step if shared access causes conflicts.
 
 Keep the risk down while it's shared:
 
@@ -174,19 +229,49 @@ Keep the risk down while it's shared:
 - Limit Restarters writes in the function to group 116's events and to device ids stored on our tickets.
 - Turn on App Check to block scripted requests.
 
+### In-person bookings have no date
+
+The in-person booking form has no date field. Where `requested_repair_date` is blank, the app shows the date the ticket was created ("Added Sun 8 Nov 2026") and sorts by it. The open list puts the newest bookings first within each stage.
+
 ### Booking date: keep the 1st and 3rd Saturday script
 
 [date-choice-1st-3rd-sat.js](date-choice-1st-3rd-sat.js) runs on the page that embeds the HubSpot form. It hides the `requested_repair_date` field and shows a dropdown of the next six 1st and 3rd Saturdays. Closed dates, such as around Christmas, go in its `dateExceptions` list. Events are regular enough that this is almost always right, and it avoids a separate job to keep the dates in sync with Restarters.
 
 The requested date is only for planning. It lets the host see ahead of an event whether demand is high or specific tools are needed. Keep `dateExceptions` in step with Restarters, otherwise customers can book a cancelled Saturday.
 
-### Restarters sync uses the current session, and failures are retried
+### Restarters sync uses the latest session, and failures are retried
 
-Fixers add items to the session that's running now, so the sync uses the Restarters event for today, whatever date the customer booked.
+Fixers add items to the session that's running now. The sync uses group 116's latest Restarters event on or before the day the ticket was completed. That's today's session if it's on Restarters, otherwise the most recent one before it. It doesn't use the date the customer booked. A session missing from Restarters, or a date mix-up, doesn't stop the sync. The item lands on the previous session, and a host can move it on Restarters if needed.
 
-If there's no Restarters event for today, the host has to add or correct it on Restarters. Until then, sync fails for that session. The app still saves every change to the HubSpot ticket and marks the ticket's sync status as Error. Once Restarters is fixed, the host presses Resync to send the failed items. Each failed item is matched to the event on the day it was completed, so an item fixed on Saturday and retried on Monday still goes to Saturday's event.
+Sync only fails if there's no event at all in the previous 6 months, if a required field is missing (category, item type, barrier or next steps), or if Restarters is down. The app still saves every change to HubSpot and marks the ticket's sync status as Error with the reason. The list page shows "Resync N failed" only when there are failed syncs. Each retried item is matched to the latest event up to the day it was completed, so an item fixed on Saturday and retried on Monday still goes to Saturday's event.
 
-A ticket can also fail for other reasons, such as a missing category or a Restarters outage. These are handled the same way, with the reason shown on the ticket.
+### Outcome: the pipeline stage drives the sync
+
+A closed stage is the outcome, so volunteers only set it once and the HubSpot board shows the real result. The `repair_outcome` property isn't used by the app. Hide it from the ticket record or delete it from the sandbox.
+
+| Stage | Restarters `repair_status` | Sync? |
+|---|---|---|
+| Repaired | `Fixed` | Yes |
+| Can't repair | `End of life`, with `barrier` required | Yes |
+| Needs follow-up (open) | `Repairable`, with `next_steps` required | Yes, on the day's event |
+| Won't repair | none | Not for now. No repair was attempted. |
+| No show | none | No. Nothing was looked at. |
+
+Moving a ticket out of a closed stage, or into No show, after it has synced leaves the Restarters record in place. Use the delete action to remove it.
+
+If an item marked Needs follow-up is later repaired, the same device is updated to Fixed. It stays on the event it was first logged against.
+
+### Search: open tickets only, in the browser
+
+The search box filters the open list as you type, so it's instant and makes no extra calls to HubSpot. Each word must match the start of a word in the item name or the customer's first name, or the short reference. The category dropdown only lists categories that open tickets use.
+
+Completed repairs aren't searchable. If someone brings an item back, it's booked as a new repair. That's fine for the stats, since it's been saved from landfill twice. Email search isn't supported, on purpose, to keep contact details out of the app.
+
+### Short reference
+
+Each ticket shows a short reference, the last five digits of the HubSpot ticket id (e.g. #67747). It's printed large on the job sheet, shown on the list, and searchable. It's easier to say out loud than the 12-digit id, and it stays the same for the life of the ticket.
+
+A position such as "item 3 of 12" wasn't used, because it changes as items are added or completed. Two open tickets could share the same last five digits, but it's unlikely with a session's worth of items, and the item name and first name tell them apart.
 
 ### Item type: set in the app, not by customers
 

@@ -23,11 +23,14 @@ function friendlyError(err: unknown): string {
   return "Couldn't sign in. Please try again.";
 }
 
+// One shared login for now (see README Decisions). The email is fixed so
+// volunteers only need the password.
+const SHARED_EMAIL = "repaircaferugby@gmail.com";
+
 function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -44,7 +47,7 @@ function Login() {
     setError("");
     setSubmitting(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, SHARED_EMAIL, password);
       // AuthProvider picks up the new user via onAuthStateChanged.
       navigate(destination, { replace: true });
     } catch (err) {
@@ -54,20 +57,15 @@ function Login() {
   };
 
   return (
-    <form onSubmit={handleSignIn}>
+    <form onSubmit={handleSignIn} className="login">
       <h2>Sign in</h2>
-      {error && <p role="alert" style={{ color: "red" }}>{error}</p>}
-      <input
-        type="email"
-        placeholder="Email"
-        autoComplete="username"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
+      {error && <p role="alert" className="error">{error}</p>}
+      {/* Read-only, but still sent so password managers can match it. */}
+      <input type="email" autoComplete="username" value={SHARED_EMAIL} readOnly aria-label="Email" />
       <input
         type="password"
         placeholder="Password"
+        autoFocus
         autoComplete="current-password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}

@@ -1,0 +1,45 @@
+meta {
+  name: Create fixer properties
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{hubspotBase}}/crm/v3/properties/tickets/batch/create
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "inputs": [
+      {
+        "name": "repair_fixer",
+        "label": "Repair Fixer",
+        "type": "enumeration",
+        "fieldType": "select",
+        "groupName": "repair_cafe_info",
+        "description": "Fixer currently assigned to the item. Add or remove fixers by editing this property's options.",
+        "options": [
+          { "label": "Paul F", "value": "Paul F", "displayOrder": 0 },
+          { "label": "Pete N", "value": "Pete N", "displayOrder": 1 },
+          { "label": "Irene M", "value": "Irene M", "displayOrder": 2 },
+          { "label": "Ian J", "value": "Ian J", "displayOrder": 3 },
+          { "label": "Rob D", "value": "Rob D", "displayOrder": 4 }
+        ]
+      },
+      {
+        "name": "repair_fixers",
+        "label": "Repair Worked On By",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "repair_cafe_info",
+        "description": "Everyone who has been assigned the item, separated by semicolons. Added to by the app each time Repair Fixer changes."
+      }
+    ]
+  }
+}
+
+docs {
+  Run once per portal (sandbox done 8 November 2026, live still to do).
+}

@@ -1,0 +1,74 @@
+import { auth } from "./firebase";
+
+// Shapes returned by the functions in functions/src/app.ts.
+export type Properties = Record<string, string | null>;
+// firstName is the only contact detail the API returns.
+export type Ticket = { id: string; firstName: string | null; properties: Properties };
+export type SyncResult =
+  | { status: "Synced"; deviceId: number; eventId: number }
+  | { status: "Error"; error: string }
+  | { status: "Skipped" };
+// restartersStatus is set for stages that sync: Fixed, Repairable or End of life.
+export type Stage = { id: string; label: string; open: boolean; restartersStatus: string | null };
+export type Option = { label: string; value: string };
+export type Meta = { stages: Stage[]; options: Record<string, Option[]> };
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+// fetch for /api routes. Adds the signed-in user's ID token (refreshed by
+// Firebase when it's near expiry) and turns error responses into ApiError.
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = await auth.currentUser?.getIdToken();
+  const res = await fetch(`/api${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init.headers,
+    },
+  }).catch(() => {
+    throw new ApiError(0, "No connection. Check the Wi-Fi and try again.");
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(res.status, body.error ?? `Request failed (${res.status})`);
+  }
+  return body as T;
+}
+
+// Stages and dropdown options hardly change, so fetch them once per page load.
+let metaPromise: Promise<Meta> | undefined;
+export function getMeta(): Promise<Meta> {
+  metaPromise ??= apiFetch<Meta>("/meta").catch((err) => {
+    metaPromise = undefined; // let the next call retry
+    throw err;
+  });
+  return metaPromise;
+}
+
+export const getTickets = () => apiFetch<{ tickets: Ticket[]; failedSyncs: number }>("/tickets");
+
+export const getTicket = (id: string) =>
+  apiFetch<{ ticket: Ticket }>(`/tickets/${id}`).then((r) => r.ticket);
+
+// Saves to HubSpot, then syncs to Restarters if the stage calls for it.
+export const updateTicket = (id: string, properties: Properties) =>
+  apiFetch<{ ticket: Ticket; sync: SyncResult }>(`/tickets/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ properties }),
+  });
+
+export const syncTicket = (id: string) =>
+  apiFetch<{ ticket: Ticket; sync: SyncResult }>(`/tickets/${id}/sync`, { method: "POST" });
+
+export const removeFromRestarters = (id: string) =>
+  apiFetch<{ ticket: Ticket }>(`/tickets/${id}/restarters`, { method: "DELETE" }).then((r) => r.ticket);
+
+export const retryFailedSyncs = () =>
+  apiFetch<{ retried: number; synced: number }>("/sync", { method: "POST" });

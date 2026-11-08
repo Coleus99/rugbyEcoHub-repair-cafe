@@ -2,6 +2,7 @@ import { Link, Outlet } from "react-router";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
+import logoUrl from "../assets/EcoHubRepairCafeUpdated.webp";
 
 // Header shared by the signed-in pages.
 export default function Layout() {
@@ -10,12 +11,16 @@ export default function Layout() {
   return (
     <>
       <header>
-        <Link to="/">Repair Cafe</Link>
-        <span>{user?.email}</span>
-        {/* RequireAuth notices the sign-out and redirects to /login. */}
-        <button type="button" onClick={() => signOut(auth)}>
-          Sign out
-        </button>
+        <Link to="/">
+          <img src={logoUrl} className="logo" alt="Repair Cafe logo" />
+        </Link>
+        <div className="currentUserWrapper">
+          <span>{user?.email}</span>
+          {/* RequireAuth notices the sign-out and redirects to /login. */}
+          <button type="button" onClick={() => signOut(auth)}>
+            Sign out
+          </button>
+        </div>
       </header>
       <main>
         <Outlet />

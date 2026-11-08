@@ -1,0 +1,463 @@
+{
+  "completedAt": "2026-11-08T20:23:43.516Z",
+  "status": "COMPLETE",
+  "startedAt": "2026-11-08T20:23:43.509Z",
+  "results": [
+    {
+      "updatedAt": "2026-11-07T17:28:24.137Z",
+      "createdAt": "2026-11-07T17:28:24.137Z",
+      "name": "repair_barrier",
+      "label": "Repair Barrier",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Only when outcome is End of life.",
+      "groupName": "repair_cafe_info",
+      "options": [
+        {
+          "label": "Spare parts not available",
+          "value": "Spare parts not available",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Spare parts too expensive",
+          "value": "Spare parts too expensive",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "No way to open the product",
+          "value": "No way to open the product",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Repair information not available",
+          "value": "Repair information not available",
+          "displayOrder": 3,
+          "hidden": false
+        },
+        {
+          "label": "Lack of equipment",
+          "value": "Lack of equipment",
+          "displayOrder": 4,
+          "hidden": false
+        }
+      ],
+      "createdUserId": "40167169",
+      "updatedUserId": "40167169",
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "archived": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": false,
+        "readOnlyValue": false
+      },
+      "formField": true,
+      "dataSensitivity": "non_sensitive"
+    },
+    {
+      "updatedAt": "2026-11-07T17:28:24.137Z",
+      "createdAt": "2026-11-07T17:28:24.137Z",
+      "name": "restarters_category",
+      "label": "Restarters Category",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Restarters item category. Option value is the Restarters category id. Replaces Repair Item Category.",
+      "groupName": "repair_cafe_info",
+      "options": [
+        {
+          "label": "Games console",
+          "value": "6",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Watch/clock",
+          "value": "7",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Sewing machine",
+          "value": "8",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Iron",
+          "value": "9",
+          "displayOrder": 3,
+          "hidden": false
+        },
+        {
+          "label": "Coffee maker",
+          "value": "10",
+          "displayOrder": 4,
+          "hidden": false
+        },
+        {
+          "label": "Desktop computer",
+          "value": "11",
+          "displayOrder": 5,
+          "hidden": false
+        },
+        {
+          "label": "Flat screen 15-17\"",
+          "value": "12",
+          "displayOrder": 6,
+          "hidden": false
+        },
+        {
+          "label": "Flat screen 19-20\"",
+          "value": "13",
+          "displayOrder": 7,
+          "hidden": false
+        },
+        {
+          "label": "Flat screen 22-24\"",
+          "value": "14",
+          "displayOrder": 8,
+          "hidden": false
+        },
+        {
+          "label": "Laptop large",
+          "value": "15",
+          "displayOrder": 9,
+          "hidden": false
+        },
+        {
+          "label": "Laptop medium",
+          "value": "16",
+          "displayOrder": 10,
+          "hidden": false
+        },
+        {
+          "label": "Laptop small",
+          "value": "17",
+          "displayOrder": 11,
+          "hidden": false
+        },
+        {
+          "label": "Paper shredder",
+          "value": "18",
+          "displayOrder": 12,
+          "hidden": false
+        },
+        {
+          "label": "PC accessory",
+          "value": "19",
+          "displayOrder": 13,
+          "hidden": false
+        },
+        {
+          "label": "Printer/scanner",
+          "value": "20",
+          "displayOrder": 14,
+          "hidden": false
+        },
+        {
+          "label": "Digital compact camera",
+          "value": "21",
+          "displayOrder": 15,
+          "hidden": false
+        },
+        {
+          "label": "DSLR/video camera",
+          "value": "22",
+          "displayOrder": 16,
+          "hidden": false
+        },
+        {
+          "label": "Handheld entertainment device",
+          "value": "23",
+          "displayOrder": 17,
+          "hidden": false
+        },
+        {
+          "label": "Headphones",
+          "value": "24",
+          "displayOrder": 18,
+          "hidden": false
+        },
+        {
+          "label": "Mobile",
+          "value": "25",
+          "displayOrder": 19,
+          "hidden": false
+        },
+        {
+          "label": "Tablet",
+          "value": "26",
+          "displayOrder": 20,
+          "hidden": false
+        },
+        {
+          "label": "Flat screen 26-30\"",
+          "value": "27",
+          "displayOrder": 21,
+          "hidden": false
+        },
+        {
+          "label": "Flat screen 32-37\"",
+          "value": "28",
+          "displayOrder": 22,
+          "hidden": false
+        },
+        {
+          "label": "Hi-Fi integrated",
+          "value": "29",
+          "displayOrder": 23,
+          "hidden": false
+        },
+        {
+          "label": "Hi-Fi separates",
+          "value": "30",
+          "displayOrder": 24,
+          "hidden": false
+        },
+        {
+          "label": "Musical instrument",
+          "value": "31",
+          "displayOrder": 25,
+          "hidden": false
+        },
+        {
+          "label": "Portable radio",
+          "value": "32",
+          "displayOrder": 26,
+          "hidden": false
+        },
+        {
+          "label": "Projector",
+          "value": "33",
+          "displayOrder": 27,
+          "hidden": false
+        },
+        {
+          "label": "TV and gaming-related accessories",
+          "value": "34",
+          "displayOrder": 28,
+          "hidden": false
+        },
+        {
+          "label": "Aircon/dehumidifier",
+          "value": "35",
+          "displayOrder": 29,
+          "hidden": false
+        },
+        {
+          "label": "Decorative or safety lights",
+          "value": "36",
+          "displayOrder": 30,
+          "hidden": false
+        },
+        {
+          "label": "Fan",
+          "value": "37",
+          "displayOrder": 31,
+          "hidden": false
+        },
+        {
+          "label": "Hair & beauty item",
+          "value": "38",
+          "displayOrder": 32,
+          "hidden": false
+        },
+        {
+          "label": "Kettle",
+          "value": "39",
+          "displayOrder": 33,
+          "hidden": false
+        },
+        {
+          "label": "Lamp",
+          "value": "40",
+          "displayOrder": 34,
+          "hidden": false
+        },
+        {
+          "label": "Power tool",
+          "value": "41",
+          "displayOrder": 35,
+          "hidden": false
+        },
+        {
+          "label": "Small kitchen item",
+          "value": "42",
+          "displayOrder": 36,
+          "hidden": false
+        },
+        {
+          "label": "Toaster",
+          "value": "43",
+          "displayOrder": 37,
+          "hidden": false
+        },
+        {
+          "label": "Toy",
+          "value": "44",
+          "displayOrder": 38,
+          "hidden": false
+        },
+        {
+          "label": "Vacuum",
+          "value": "45",
+          "displayOrder": 39,
+          "hidden": false
+        },
+        {
+          "label": "Misc (powered)",
+          "value": "46",
+          "displayOrder": 40,
+          "hidden": false
+        },
+        {
+          "label": "Furniture",
+          "value": "47",
+          "displayOrder": 41,
+          "hidden": false
+        },
+        {
+          "label": "Bicycle",
+          "value": "48",
+          "displayOrder": 42,
+          "hidden": false
+        },
+        {
+          "label": "Clothing/textile",
+          "value": "49",
+          "displayOrder": 43,
+          "hidden": false
+        },
+        {
+          "label": "Misc (unpowered)",
+          "value": "50",
+          "displayOrder": 44,
+          "hidden": false
+        },
+        {
+          "label": "Hand tool",
+          "value": "51",
+          "displayOrder": 45,
+          "hidden": false
+        },
+        {
+          "label": "Jewellery",
+          "value": "52",
+          "displayOrder": 46,
+          "hidden": false
+        }
+      ],
+      "createdUserId": "40167169",
+      "updatedUserId": "40167169",
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "archived": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": false,
+        "readOnlyValue": false
+      },
+      "formField": true,
+      "dataSensitivity": "non_sensitive"
+    },
+    {
+      "updatedAt": "2026-11-07T17:28:24.137Z",
+      "createdAt": "2026-11-07T17:28:24.137Z",
+      "name": "repair_next_steps",
+      "label": "Repair Next Steps",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Only when outcome is Repairable.",
+      "groupName": "repair_cafe_info",
+      "options": [
+        {
+          "label": "More time needed",
+          "value": "More time needed",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Professional help",
+          "value": "Professional help",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Do it yourself",
+          "value": "Do it yourself",
+          "displayOrder": 2,
+          "hidden": false
+        }
+      ],
+      "createdUserId": "40167169",
+      "updatedUserId": "40167169",
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "archived": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": false,
+        "readOnlyValue": false
+      },
+      "formField": true,
+      "dataSensitivity": "non_sensitive"
+    },
+    {
+      "updatedAt": "2026-11-07T17:28:24.137Z",
+      "createdAt": "2026-11-07T17:28:24.137Z",
+      "name": "repair_spare_parts",
+      "label": "Repair Spare Parts",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Whether spare parts are needed.",
+      "groupName": "repair_cafe_info",
+      "options": [
+        {
+          "label": "No spare parts required",
+          "value": "No",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Parts required from manufacturer",
+          "value": "Manufacturer",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Parts required from third party",
+          "value": "Third party",
+          "displayOrder": 2,
+          "hidden": false
+        }
+      ],
+      "createdUserId": "40167169",
+      "updatedUserId": "40167169",
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "archived": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": false,
+        "readOnlyValue": false
+      },
+      "formField": true,
+      "dataSensitivity": "non_sensitive"
+    }
+  ]
+}

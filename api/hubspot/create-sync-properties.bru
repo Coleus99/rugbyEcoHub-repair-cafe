@@ -1,0 +1,43 @@
+meta {
+  name: Create Restarters sync properties
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{hubspotBase}}/crm/v3/properties/tickets/batch/create
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "inputs": [
+      {
+        "name": "restarters_sync_status",
+        "label": "Restarters Sync Status",
+        "type": "enumeration",
+        "fieldType": "select",
+        "groupName": "repair_cafe_info",
+        "description": "Set by the Repair Cafe app. Error means the last sync failed; see Restarters Sync Error.",
+        "options": [
+          { "label": "Not synced", "value": "Not synced", "displayOrder": 0 },
+          { "label": "Synced", "value": "Synced", "displayOrder": 1 },
+          { "label": "Error", "value": "Error", "displayOrder": 2 }
+        ]
+      },
+      {
+        "name": "restarters_sync_error",
+        "label": "Restarters Sync Error",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "repair_cafe_info",
+        "description": "Why the last Restarters sync failed. Cleared on success."
+      }
+    ]
+  }
+}
+
+docs {
+  Run once per portal (sandbox done 8 November 2026, live still to do).
+}

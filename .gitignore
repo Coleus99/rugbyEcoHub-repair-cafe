@@ -33,3 +33,6 @@ functions/lib
 functions/.secret.local
 # Firebase CLI logs
 firebase-debug*.log
+
+# Firebase emulator data (test users)
+.emulator-data/

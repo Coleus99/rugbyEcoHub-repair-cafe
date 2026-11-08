@@ -1,184 +1,402 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
+header {
   display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 16px;
+  border-bottom: 1px solid var(--border);
 
   a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
+    font-weight: 600;
     text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
+    margin-right: auto;
   }
 
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
+  span {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
 
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
+  .logo {
+    max-height: 4rem;;
+  }
+  .currentUserWrapper button{
+    margin-left: 0.5rem;
   }
 }
 
-#spacer {
-  height: 88px;
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 16px 3rem;
+}
+
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem;
+
+  input {
+    flex: 2 1 14rem;
+  }
+
+  select {
+    flex: 1 1 10rem;
+    min-width: 0;
+  }
+
+  input,
+  select {
+    padding: 0.5em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+}
+
+.crumbs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+
+  span {
+    color: var(--muted);
+  }
+
+  span::before {
+    content: "/ ";
+  }
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.single-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--error);
+}
+
+.count {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.ticket-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ticket-card {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+
+  &:hover,
+  &:focus-within {
+    border-color: var(--accent);
+  }
+
+  .ticket-main {
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 1rem;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .ticket-print {
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    border-left: 1px solid var(--border);
+  }
+
+  .issue {
+    margin-top: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.ref {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.print-ref {
+  font-size: 14pt;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 1rem 0;
+  padding: 0.5rem 1rem 1rem;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+
+  > span {
+    font-weight: 500;
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    padding: 0.5em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  background: var(--bg);
   border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
+}
+
+.login {
+  max-width: 360px;
+  margin: 3rem auto;
+  padding: 0 16px;
+  display: grid;
+  gap: 0.75rem;
+
+  input {
+    padding: 0.5em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
   }
 }
 
-.ticks {
-  position: relative;
-  width: 100%;
+/* Print job sheet. On screen it previews roughly as A4. */
+.print-page {
+  max-width: 190mm;
+  margin: 0 auto;
+  padding: 16px;
+  font-size: 11pt;
+  line-height: 1.35;
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+  h1 {
+    font-size: 18pt;
+    margin: 0.1em 0 0.3em;
   }
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
+  h2 {
+    font-size: 13pt;
+    margin: 0.8em 0 0.3em;
+    border-bottom: 1px solid currentColor;
   }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+
+  h3 {
+    font-size: 10.5pt;
+    margin: 0.7em 0 0.25em;
+  }
+}
+
+.print-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.print-header {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  > div {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.print-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.2rem 1rem;
+  margin: 0;
+
+  dt {
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.qr {
+  margin: 0;
+  text-align: center;
+  font-size: 8.5pt;
+
+  svg {
+    display: block;
+    background: #fff;
+  }
+}
+
+.write-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  gap: 1rem;
+}
+
+.write-in {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+
+  .line {
+    flex: 1;
+    min-height: 1.4em;
+    border-bottom: 1px solid currentColor;
+  }
+}
+
+.write-box {
+  min-height: 25mm;
+  padding: 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  white-space: pre-wrap;
+
+  &.tall {
+    min-height: 60mm;
+  }
+}
+
+.ticks ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.25rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+}
+
+.box {
+  flex: none;
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+  }
+}
+
+@media (max-width: 560px) {
+  .print-details,
+  .write-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  :root {
+    color-scheme: light;
+    --text: #000;
+    --muted: #444;
+    --bg: #fff;
+  }
+
+  .print-controls {
+    display: none;
+  }
+
+  .print-page {
+    max-width: none;
+    padding: 0;
   }
 }

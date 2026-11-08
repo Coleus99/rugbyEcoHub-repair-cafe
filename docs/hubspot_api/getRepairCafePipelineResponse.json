@@ -1,0 +1,101 @@
+{
+  "label": "Repair Cafe",
+  "displayOrder": 0,
+  "id": "0",
+  "stages": [
+    {
+      "label": "New",
+      "displayOrder": 0,
+      "metadata": {
+        "ticketState": "OPEN",
+        "isClosed": "false"
+      },
+      "id": "1",
+      "createdAt": "2026-11-08T20:12:17.457Z",
+      "updatedAt": "2026-11-08T20:18:55.254Z",
+      "writePermissions": "CRM_PERMISSIONS_ENFORCEMENT",
+      "archived": false
+    },
+    {
+      "label": "In Progress",
+      "displayOrder": 1,
+      "metadata": {
+        "ticketState": "OPEN",
+        "isClosed": "false"
+      },
+      "id": "2",
+      "createdAt": "2026-11-08T20:12:17.457Z",
+      "updatedAt": "2026-11-08T20:18:55.254Z",
+      "writePermissions": "CRM_PERMISSIONS_ENFORCEMENT",
+      "archived": false
+    },
+    {
+      "label": "Needs follow-up",
+      "displayOrder": 2,
+      "metadata": {
+        "ticketState": "OPEN",
+        "isClosed": "false"
+      },
+      "id": "6385083617",
+      "createdAt": "2026-11-08T20:18:55.254Z",
+      "updatedAt": "2026-11-08T20:18:55.254Z",
+      "writePermissions": "CRM_PERMISSIONS_ENFORCEMENT",
+      "archived": false
+    },
+    {
+      "label": "Repaired",
+      "displayOrder": 3,
+      "metadata": {
+        "ticketState": "OPEN",
+        "isClosed": "false"
+      },
+      "id": "3",
+      "createdAt": "2026-11-08T20:12:17.457Z",
+      "updatedAt": "2026-11-08T20:18:55.254Z",
+      "writePermissions": "CRM_PERMISSIONS_ENFORCEMENT",
+      "archived": false
+    },
+    {
+      "label": "Can't repair",
+      "displayOrder": 4,
+      "metadata": {
+        "ticketState": "CLOSED",
+        "isClosed": "true"
+      },
+      "id": "4",
+      "createdAt": "2026-11-08T20:12:17.457Z",
+      "updatedAt": "2026-11-08T20:18:55.254Z",
+      "writePermissions": "CRM_PERMISSIONS_ENFORCEMENT",
+      "archived": false
+    },
+    {
+      "label": "Won't repair",
+      "displayOrder": 5,
+      "metadata": {
+        "ticketState": "CLOSED",
+        "isClosed": "true"
+      },
+      "id": "6385079534",
+      "createdAt": "2026-11-08T20:14:27.847Z",
+      "updatedAt": "2026-11-08T20:18:55.254Z",
+      "writePermissions": "CRM_PERMISSIONS_ENFORCEMENT",
+      "archived": false
+    },
+    {
+      "label": "No show",
+      "displayOrder": 6,
+      "metadata": {
+        "ticketState": "CLOSED",
+        "isClosed": "true"
+      },
+      "id": "6385079535",
+      "createdAt": "2026-11-08T20:14:27.847Z",
+      "updatedAt": "2026-11-08T20:18:55.254Z",
+      "writePermissions": "CRM_PERMISSIONS_ENFORCEMENT",
+      "archived": false
+    }
+  ],
+  "createdAt": "1970-01-01T00:00:00Z",
+  "updatedAt": "2026-11-08T20:18:55.254Z",
+  "archived": false
+}
