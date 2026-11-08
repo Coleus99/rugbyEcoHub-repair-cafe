@@ -31,3 +31,5 @@ web/dist
 functions/lib
 .firebase/
 functions/.secret.local
+# Firebase CLI logs
+firebase-debug*.log
