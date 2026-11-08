@@ -25,3 +25,9 @@ yarn-error.log*
 # secrets
 .env
 api/.env
+
+# Firebase
+web/dist
+functions/lib
+.firebase/
+functions/.secret.local

@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "repair-cafe-dev",
+    "dev": "repair-cafe-dev",
+    "prod": "repair-cafe-prod"
+  },
+  "targets": {},
+  "etags": {}
+}
