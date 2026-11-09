@@ -291,7 +291,7 @@ If an item marked Needs follow-up is later repaired, the same device is updated 
 
 ### Search: in the browser, across all three tabs
 
-The search box sits above the tabs and filters all three as you type. It's instant and makes no extra calls to HubSpot, apart from loading completed tickets the first time you search or open Done. Each word must match the start of a word in the item name, the customer's first name or the fixer, or the short reference. While searching, each tab shows how many results it has, so you can see where an item is without switching. The category dropdown only lists categories that open or recently completed tickets use.
+The search box sits above the tabs and filters all three as you type. It's instant and makes no extra calls to HubSpot, apart from loading completed tickets the first time you search or open Done. Each word must match the start of a word in the item name, the customer's first name or the fixer, or the short reference. Each tab shows its total in brackets, e.g. "Repairs (12)", and while searching how many match, e.g. "Repairs (3 of 12)", so you can see where an item is without switching. The category dropdown only lists categories that open or recently completed tickets use.
 
 Searching the Done tab covers everything completed in the last 90 days (`GET /api/tickets/completed`, `COMPLETED_DAYS` in `functions/src/app.ts`). That's for fixing an outcome set by mistake or adding notes afterwards. Saving a completed ticket at a stage that syncs updates the same Restarters device, because the device id is stored on the ticket.
 

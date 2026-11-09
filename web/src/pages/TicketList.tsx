@@ -81,7 +81,13 @@ export default function TicketList() {
   const repairs = matches(tabTickets.repairs);
   const done = meta && doneView(matches(tabTickets.done), meta.stages, showAllDone || filtering);
   // While searching, every tab shows how many results it has.
-  const doneMatches = filtering && completed.tickets && done ? done.failed.length + done.rest.length : undefined;
+  const doneShown = done ? done.failed.length + done.rest.length : 0;
+  // Done's total is what the tab shows when not searching: the latest
+  // session (or last 90 days) plus failures.
+  const doneAll = meta && doneView(tabTickets.done, meta.stages, showAllDone);
+  const doneTotal = completed.tickets && doneAll ? doneAll.failed.length + doneAll.rest.length : undefined;
+  // While searching, Done covers the whole 90 days.
+  const doneSearchTotal = completed.tickets?.length;
 
   return (
     <>
@@ -118,9 +124,9 @@ export default function TicketList() {
       </div>
 
       <div className="tabs" role="tablist" aria-label="Which repairs">
-        <TabButton current={tab} value="toPrint" onSelect={chooseTab} label="To print" count={tickets && toPrint.length} />
-        <TabButton current={tab} value="repairs" onSelect={chooseTab} label="Repairs" count={tickets && repairs.length} />
-        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" count={doneMatches} alert={failedSyncs ? `${failedSyncs} failed` : undefined} />
+        <TabButton current={tab} value="toPrint" onSelect={chooseTab} label="To print" total={tickets && tabTickets.toPrint.length} matches={filtering ? toPrint.length : undefined} />
+        <TabButton current={tab} value="repairs" onSelect={chooseTab} label="Repairs" total={tickets && tabTickets.repairs.length} matches={filtering ? repairs.length : undefined} />
+        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" total={filtering ? doneSearchTotal : doneTotal} matches={filtering && completed.tickets ? doneShown : undefined} alert={failedSyncs ? `${failedSyncs} failed` : undefined} />
       </div>
 
       {error && <p role="alert" className="error">{error}</p>}
@@ -185,11 +191,14 @@ export default function TicketList() {
   );
 }
 
-function TabButton({ current, value, onSelect, label, count, alert }: { current: ListTab; value: ListTab; onSelect: (tab: ListTab) => void; label: string; count?: number; alert?: string }) {
+// "Repairs (12)", or "Repairs (3 of 12)" while searching. Done can add
+// "· 1 failed".
+function TabButton({ current, value, onSelect, label, total, matches, alert }: { current: ListTab; value: ListTab; onSelect: (tab: ListTab) => void; label: string; total?: number; matches?: number; alert?: string }) {
+  const count = total === undefined ? "" : matches === undefined ? `(${total})` : `(${matches} of ${total})`;
   return (
     <button type="button" role="tab" aria-selected={current === value} className="tab" onClick={() => onSelect(value)}>
-      {label} {count !== undefined && <span className="count">{count}</span>}
-      {alert && <span className="badge error">{alert}</span>}
+      {label} {count && <span className="count">{count}</span>}
+      {alert && <span className="error tab-alert"> · {alert}</span>}
     </button>
   );
 }

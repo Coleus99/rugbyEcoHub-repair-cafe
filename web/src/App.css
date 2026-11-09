@@ -300,8 +300,8 @@ fieldset.group-repair {
   white-space: nowrap;
 }
 
-.tabs .badge {
-  margin-left: 0.4rem;
+.tabs .tab-alert {
+  font-weight: 600;
 }
 
 .login {
