@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { awaitingPrint, isPrinted } from "./listTab";
+import { assignChanges, awaitingPrint, isPrinted } from "./listTab";
 
 const ticket = (repair_printed_at: string | null, hs_pipeline_stage = "1") => ({
   id: "1",
@@ -22,5 +22,21 @@ describe("awaitingPrint", () => {
 
   it("counts a ticket moved past New as checked in, printed or not", () => {
     expect(awaitingPrint(ticket(null, "2"), "1")).toBe(false);
+  });
+});
+
+describe("assignChanges", () => {
+  const stages = [
+    { id: "1", label: "New", open: true },
+    { id: "2", label: "In Progress", open: true },
+    { id: "3", label: "Repaired", open: false },
+  ];
+
+  it("moves a new item to In Progress", () => {
+    expect(assignChanges(ticket(null, "1"), "Paul F", stages)).toEqual({ repair_fixer: "Paul F", hs_pipeline_stage: "2" });
+  });
+
+  it("only changes the fixer once it's past New", () => {
+    expect(assignChanges(ticket(null, "2"), "Pete N", stages)).toEqual({ repair_fixer: "Pete N" });
   });
 });

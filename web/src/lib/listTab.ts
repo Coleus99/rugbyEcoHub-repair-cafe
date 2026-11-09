@@ -35,3 +35,16 @@ export function rememberTab(tab: ListTab): void {
     // ignore
   }
 }
+
+// Assigning a fixer from the Repairs list. An item still at the first
+// stage (New) moves on to In Progress at the same time, since someone is
+// now working on it. Later stages are left as they are.
+export function assignChanges(ticket: Ticket, fixer: string, stages: { id: string; label: string; open: boolean }[]): Record<string, string> {
+  const changes: Record<string, string> = { repair_fixer: fixer };
+  const open = stages.filter((s) => s.open);
+  const inProgress = open.find((s) => /in progress/i.test(s.label)) ?? open[1];
+  if (fixer && inProgress && ticket.properties.hs_pipeline_stage === stages[0]?.id) {
+    changes.hs_pipeline_stage = inProgress.id;
+  }
+  return changes;
+}

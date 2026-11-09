@@ -141,11 +141,32 @@ main {
     text-decoration: none;
   }
 
-  .ticket-print {
+  /* Fixer dropdown (Repairs tab) and Print/Reprint, stacked. */
+  .ticket-actions {
     display: flex;
-    align-items: center;
-    padding: 0 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
     border-left: 1px solid var(--border);
+    max-width: 10rem;
+  }
+
+  .ticket-print {
+    text-align: center;
+  }
+
+  .assign-fixer {
+    padding: 0.3em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    font-size: 0.9em;
+  }
+
+  .assign-error {
+    font-size: 0.8em;
   }
 
   .issue {

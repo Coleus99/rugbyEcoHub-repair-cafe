@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { getCompletedTickets, getMeta, getTickets, type Meta, type Session, type Stage, type Ticket } from "../lib/api";
+import { getCompletedTickets, getMeta, getTickets, updateTicket, type Meta, type Session, type Stage, type Ticket } from "../lib/api";
 import { doneView, followUpStages } from "../lib/done";
 import { formatDate } from "../lib/format";
-import { awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
+import { assignChanges, awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
 import { bookingLabel, comesBack, labelFor } from "../lib/ticketForm";
 
@@ -64,6 +64,8 @@ export default function TicketList() {
     setCompleted((c) => ({ ...c, error: undefined }));
     setReloads((n) => n + 1);
   };
+  // Swap in a ticket saved from the list (assigning a fixer).
+  const replaceTicket = (saved: Ticket) => setState((s) => ({ ...s, tickets: s.tickets?.map((t) => (t.id === saved.id ? saved : t)) }));
   const chooseTab = (next: ListTab) => {
     setTab(next);
     rememberTab(next);
@@ -141,14 +143,19 @@ export default function TicketList() {
         <div role="tabpanel" aria-label="To print">
           <p className="muted">Print a job sheet when someone arrives. It then moves to Repairs. Anything left here at the end of the session is a no-show.</p>
           {toPrint.length === 0 && <p>{filtering ? "No bookings to print match." : "Nothing to print."}</p>}
-          <StageGroups stages={meta.stages.filter((s) => s.open)} tickets={toPrint} meta={meta} />
+          {/* All at New, so no stage headings. */}
+          <ul className="ticket-list">
+            {toPrint.map((t) => (
+              <TicketCard key={t.id} ticket={t} meta={meta} />
+            ))}
+          </ul>
         </div>
       )}
 
       {meta && tickets && tab === "repairs" && (
         <div role="tabpanel" aria-label="Repairs">
           {repairs.length === 0 && <p>{filtering ? "No checked-in repairs match." : "No repairs checked in yet. Job sheets printed from To print show up here."}</p>}
-          <StageGroups stages={meta.stages.filter((s) => s.open)} tickets={repairs} meta={meta} />
+          <StageGroups stages={meta.stages.filter((s) => s.open)} tickets={repairs} meta={meta} onAssign={replaceTicket} />
         </div>
       )}
 
@@ -203,7 +210,7 @@ function TabButton({ current, value, onSelect, label, total, matches, alert }: {
 }
 
 // One section per stage that has tickets, in board order.
-function StageGroups({ stages, tickets, meta, done }: { stages: Stage[]; tickets: Ticket[]; meta: Meta; done?: boolean }) {
+function StageGroups({ stages, tickets, meta, done, onAssign }: { stages: Stage[]; tickets: Ticket[]; meta: Meta; done?: boolean; onAssign?: (t: Ticket) => void }) {
   return stages.map((stage) => {
     const inStage = tickets.filter((t) => t.properties.hs_pipeline_stage === stage.id);
     if (inStage.length === 0) return null;
@@ -214,7 +221,7 @@ function StageGroups({ stages, tickets, meta, done }: { stages: Stage[]; tickets
         </h2>
         <ul className="ticket-list">
           {inStage.map((t) => (
-            <TicketCard key={t.id} ticket={t} meta={meta} done={done} />
+            <TicketCard key={t.id} ticket={t} meta={meta} done={done} onAssign={onAssign} />
           ))}
         </ul>
       </section>
@@ -224,7 +231,8 @@ function StageGroups({ stages, tickets, meta, done }: { stages: Stage[]; tickets
 
 // On the Done tab, cards say where each item is on Restarters instead of
 // offering a print.
-function TicketCard({ ticket, meta, done }: { ticket: Ticket; meta: Meta; done?: boolean }) {
+// On Repairs (onAssign set), cards have a fixer dropdown next to Reprint.
+function TicketCard({ ticket, meta, done, onAssign }: { ticket: Ticket; meta: Meta; done?: boolean; onAssign?: (t: Ticket) => void }) {
   const p = ticket.properties;
   const makeModel = [p.repair_item_brand, p.repair_item_model].filter(Boolean).join(" ");
   const category = labelFor(meta.options.restarters_category, p.restarters_category);
@@ -234,7 +242,7 @@ function TicketCard({ ticket, meta, done }: { ticket: Ticket; meta: Meta; done?:
   const when = p.closed_date ? `Completed ${formatDate(p.closed_date)}` : done ? followUpDate : bookingLabel(p);
   // Follow-ups on Done also say what's next, e.g. "More time needed".
   const nextStep = done && p.closed_date === null && labelFor(meta.options.repair_next_steps, p.repair_next_steps);
-  const details = [ticket.firstName, category, p.repair_fixer && `Fixer ${p.repair_fixer}`, nextStep && `Next: ${nextStep}`, when].filter(Boolean);
+  const details = [ticket.firstName, category, !onAssign && p.repair_fixer && `Fixer ${p.repair_fixer}`, nextStep && `Next: ${nextStep}`, when].filter(Boolean);
   const syncs = !!meta.stages.find((s) => s.id === p.hs_pipeline_stage)?.restartersStatus;
 
   return (
@@ -250,10 +258,48 @@ function TicketCard({ ticket, meta, done }: { ticket: Ticket; meta: Meta; done?:
       {done ? (
         <span className="ticket-sync">{p.restarters_sync_status === "Synced" ? "On Restarters" : syncs && p.restarters_sync_status !== "Error" ? "Not synced" : ""}</span>
       ) : (
-        <Link to={`/tickets/${ticket.id}/print`} className={isPrinted(ticket) ? "ticket-print reprint" : "ticket-print"}>
-          {isPrinted(ticket) ? "Reprint" : "Print"}
-        </Link>
+        <div className="ticket-actions">
+          {onAssign && <AssignFixer ticket={ticket} meta={meta} onSaved={onAssign} />}
+          <Link to={`/tickets/${ticket.id}/print`} className={isPrinted(ticket) ? "ticket-print reprint" : "ticket-print"}>
+            {isPrinted(ticket) ? "Reprint" : "Print"}
+          </Link>
+        </div>
       )}
     </li>
+  );
+}
+
+// Quick fixer assignment for the host. Saves as soon as a name is picked.
+// A new item moves to In Progress at the same time.
+function AssignFixer({ ticket, meta, onSaved }: { ticket: Ticket; meta: Meta; onSaved: (t: Ticket) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const fixer = ticket.properties.repair_fixer ?? "";
+
+  const assign = async (name: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      const { ticket: saved } = await updateTicket(ticket.id, assignChanges(ticket, name, meta.stages));
+      onSaved(saved);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <select aria-label={`Fixer for ${ticket.properties.subject ?? "item"}`} className="assign-fixer" value={fixer} disabled={busy} onChange={(e) => assign(e.target.value)}>
+        {!fixer && <option value="">Assign fixer</option>}
+        {(meta.options.repair_fixer ?? []).map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {error && <span role="alert" className="error assign-error">{error}</span>}
+    </>
   );
 }

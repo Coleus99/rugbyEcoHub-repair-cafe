@@ -303,8 +303,8 @@ Reception prints a job sheet when someone arrives, and that print is the check-i
 
 The list has three tabs:
 
-- **To print**, for reception. Tickets at the first stage (New) with no print time. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
-- **Repairs**, for fixers. Everything else that's open, apart from Needs follow-up, grouped by stage. Cards say Reprint rather than Print.
+- **To print**, for reception. Tickets at the first stage (New) with no print time, in one list with no stage headings. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
+- **Repairs**, for fixers. Everything else that's open, apart from Needs follow-up, grouped by stage. Cards say Reprint rather than Print. Each card has a fixer dropdown ("Assign fixer" when there's none), so the host can assign items without opening them. Picking a name saves straight away. An item still at New moves to In Progress at the same time. The assignment is added to "Worked on by" like any other.
 - **Done**, for items nobody is working on now. One list under "Latest session, Sat 21 Nov (8 of 9 on Restarters)", grouped by stage: Needs follow-up, Repaired, Can't repair and so on. The latest session is group 116's most recent Restarters event up to today, returned with the completed list. Anything completed on or after its date counts as part of it. If Restarters can't be reached, it falls back to the most recent day anything was completed. Needs follow-up items and sync failures are included whatever their date. Failed items stay in their stage group with a "Sync failed" label and the reason. When there are any, a row at the top says "3 failed syncs" with a "Show only sync failures" checkbox. Searching covers everything completed in the last 90 days. Won't repair and No show don't sync, so they aren't counted.
 
 On the ticket page, Status and Fixer are the first row of the Repair group, so a fixer picking an item up sets both together, and the outcome sits right above the repair write-up.
