@@ -5,7 +5,9 @@ import type { Ticket } from "./api";
 // "Repairs": everything that's been checked in. Each device remembers its
 // last tab (this browser only), so the reception laptop and the fixers'
 // tablets each open where they left off.
-export type ListTab = "toPrint" | "repairs";
+// "Done" is for checking a session's items reached Restarters.
+export type ListTab = "toPrint" | "repairs" | "done";
+const TABS: ListTab[] = ["toPrint", "repairs", "done"];
 
 const KEY = "repairCafe.listTab";
 
@@ -19,7 +21,8 @@ export const awaitingPrint = (ticket: Ticket, firstStageId: string | undefined) 
 
 export function rememberedTab(): ListTab {
   try {
-    return localStorage.getItem(KEY) === "toPrint" ? "toPrint" : "repairs";
+    const saved = localStorage.getItem(KEY) as ListTab;
+    return TABS.includes(saved) ? saved : "repairs";
   } catch {
     return "repairs";
   }

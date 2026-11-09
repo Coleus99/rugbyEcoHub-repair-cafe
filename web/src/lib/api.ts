@@ -77,5 +77,3 @@ export const removeFromRestarters = (id: string) =>
 export const markPrinted = (id: string) =>
   apiFetch<{ printedAt: string }>(`/tickets/${id}/printed`, { method: "POST" });
 
-export const retryFailedSyncs = () =>
-  apiFetch<{ retried: number; synced: number }>("/sync", { method: "POST" });

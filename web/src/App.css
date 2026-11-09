@@ -261,11 +261,64 @@ fieldset.group-repair {
   position: sticky;
   bottom: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem 1rem;
   padding: 0.75rem 0;
   background: var(--bg);
   border-top: 1px solid var(--border);
+
+  /* Messages go on their own line under Status and Save. */
+  > span {
+    flex-basis: 100%;
+  }
+}
+
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 14rem;
+  font-weight: 500;
+
+  select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+}
+
+/* Done tab */
+.done-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+
+  p {
+    margin: 0.25rem 0;
+  }
+}
+
+.failed-group h2 {
+  color: var(--error);
+}
+
+.ticket-card .ticket-sync {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  color: var(--muted);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.tabs .badge {
+  margin-left: 0.4rem;
 }
 
 .login {

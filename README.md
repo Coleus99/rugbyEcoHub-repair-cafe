@@ -105,7 +105,7 @@ The sandbox reuses the default help desk pipeline, renamed "Repair Cafe", id `0`
 | New | `1` | Open |
 | In Progress | `2` | Open |
 | Needs follow-up | `6385083617` | Open |
-| Repaired | `3` | Open. **Should be Closed**, so HubSpot sets `closed_date` and the ticket leaves the list. |
+| Repaired | `3` | Closed |
 | Can't repair | `4` | Closed |
 | Won't repair | `6385079534` | Closed |
 | No show | `6385079535` | Closed |
@@ -123,7 +123,7 @@ The app lists tickets in the Open stages and reads stage names and open/closed f
    - Saving a ticket always writes to HubSpot first. If its stage maps to a Restarters status (`RESTARTERS_STAGE_STATUS`), the device is then created, or updated if `restarters_device_id` is set. A device deleted on Restarters by hand is recreated.
    - The event is the stored `restarters_event_id`. Otherwise it's group 116's latest event on or before the day the ticket closed (`closed_date`, or today for open stages such as Needs follow-up). That's the day's session if it exists, otherwise the most recent one. Dev uses the test event in `RESTARTERS_EVENT_ID` instead.
    - The result goes on the ticket: `restarters_sync_status` and `restarters_sync_error`. Missing category, item type, barrier or next steps are caught before calling Restarters, with a message saying what to fill in.
-   - `POST /api/tickets/:id/sync` (Resync now), `POST /api/sync` (Resync failed, from the list page) and `DELETE /api/tickets/:id/restarters` (Remove from Restarters).
+   - `POST /api/tickets/:id/sync` (Resync now), `POST /api/sync` (retries every failed ticket. No longer used by the web app, kept for a possible scheduled retry) and `DELETE /api/tickets/:id/restarters` (Remove from Restarters).
 7. ~~Print view.~~ A4 job sheet: condensed booking details, a QR code to the ticket page, write-in boxes, and tick boxes for outcome, spare parts, next steps and barrier. The Dymo label is still to do.
 8. ~~Search.~~ Filters by item name, first name, fixer, short reference and category, with an option to include repairs completed in the last 90 days (see [Search](#search-in-the-browser-open-tickets-plus-recent-completed-ones)).
 9. ~~Test against the sandbox.~~ Done 8 November 2026. Next, deploy to dev and try it on a phone, then prod.
@@ -137,11 +137,12 @@ Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 1. **Live HubSpot key.** Create the service key in the live portal with ticket read/write, `crm.objects.contacts.read`, `crm.schemas.tickets.write` (to create the properties) and forms read.
 2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties`, `create-fixer-properties` and `create-printed-property`. Relabel the old properties as "Legacy: …".
 3. **Live pipeline.** Set up the stages to match the sandbox (New, In Progress, Needs follow-up, Repaired, Can't repair, Won't repair, No show), with Repaired, Can't repair, Won't repair and No show marked **Closed**. Point both booking forms (online and in-person) at it.
-4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
+4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Give its default compute service account the Cloud Build role (see [Local development](#local-development), as for dev). Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
 5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`.
 6. **Config.** Create `functions/.env.repair-cafe-prod` with `HUBSPOT_PIPELINE_ID`, `RESTARTERS_STAGE_STATUS` and `ALLOWED_EMAILS` using the live stage ids. Leave out `RESTARTERS_EVENT_ID` so items go on the real session. The live ids can be read with Bruno's pipeline request once the live key is in `api/.env`.
 7. **Deploy:** `npm run deploy:prod`.
-8. **Check:** sign in, open a real ticket, print it, scan the QR code on a phone, then sync one item and check it appears on that session's Restarters event.
+8. **Custom domain.** In the prod project, Hosting → Add custom domain → `repair.rugbyecohub.org`, then add the DNS records it gives at whoever manages rugbyecohub.org. Check the domain is listed under Authentication → Settings → Authorized domains. Job sheet QR codes use the address the page was opened on, so print from the new domain once it's live.
+9. **Check:** sign in at `repair.rugbyecohub.org`, open a real ticket, print it, scan the QR code on a phone, then sync one item and check it appears on that session's Restarters event.
 
 ## Local development
 
@@ -265,7 +266,7 @@ The requested date is only for planning. It lets the host see ahead of an event 
 
 Fixers add items to the session that's running now. The sync uses group 116's latest Restarters event on or before the day the ticket was completed. That's today's session if it's on Restarters, otherwise the most recent one before it. It doesn't use the date the customer booked. A session missing from Restarters, or a date mix-up, doesn't stop the sync. The item lands on the previous session, and a host can move it on Restarters if needed.
 
-Sync only fails if there's no event at all in the previous 6 months, if a required field is missing (category, item type, barrier or next steps), or if Restarters is down. The app still saves every change to HubSpot and marks the ticket's sync status as Error with the reason. The list page shows "Resync N failed" only when there are failed syncs. Each retried item is matched to the latest event up to the day it was completed, so an item fixed on Saturday and retried on Monday still goes to Saturday's event.
+Sync only fails if there's no event at all in the previous 6 months, if a required field is missing (category, item type, barrier or next steps), or if Restarters is down. The app still saves every change to HubSpot and marks the ticket's sync status as Error with the reason. The Done tab is marked "N failed" when there are failed syncs, and lists them at the top. Each needs opening, since the fix is usually a missing field. Saving it, or Resync now, tries again. Each retried item is matched to the latest event up to the day it was completed, so an item fixed on Saturday and retried on Monday still goes to Saturday's event.
 
 ### Outcome: the pipeline stage drives the sync
 
@@ -283,11 +284,11 @@ Moving a ticket out of a closed stage, or into No show, after it has synced leav
 
 If an item marked Needs follow-up is later repaired, the same device is updated to Fixed. It stays on the event it was first logged against.
 
-### Search: in the browser, open tickets plus recent completed ones
+### Search: in the browser, across all three tabs
 
-The search box filters the list as you type, so it's instant and makes no extra calls to HubSpot. Each word must match the start of a word in the item name, the customer's first name or the fixer, or the short reference. The category dropdown only lists categories used by the tickets shown.
+The search box sits above the tabs and filters all three as you type. It's instant and makes no extra calls to HubSpot, apart from loading completed tickets the first time you search or open Done. Each word must match the start of a word in the item name, the customer's first name or the fixer, or the short reference. While searching, each tab shows how many results it has, so you can see where an item is without switching. The category dropdown only lists categories that open or recently completed tickets use.
 
-"Also search completed" adds tickets completed in the last 90 days (`GET /api/tickets/completed`, `COMPLETED_DAYS` in `functions/src/app.ts`), grouped under each closed stage. They're only loaded when the box is ticked. It's for fixing an outcome set by mistake or adding notes afterwards. Saving a completed ticket at a stage that syncs updates the same Restarters device, because the device id is stored on the ticket.
+Searching the Done tab covers everything completed in the last 90 days (`GET /api/tickets/completed`, `COMPLETED_DAYS` in `functions/src/app.ts`). That's for fixing an outcome set by mistake or adding notes afterwards. Saving a completed ticket at a stage that syncs updates the same Restarters device, because the device id is stored on the ticket.
 
 If someone brings an item back later, it's booked as a new repair. That's fine for the stats, since it's been saved from landfill twice. Email search isn't supported, on purpose, to keep contact details out of the app.
 
@@ -295,10 +296,13 @@ If someone brings an item back later, it's booked as a new repair. That's fine f
 
 Reception prints a job sheet when someone arrives, and that print is the check-in. The app records the first print time in `repair_printed_at` after the print dialog closes (from the Print button or Ctrl/Cmd+P). Cancelling the dialog still counts, because browsers don't say whether the page was actually printed.
 
-The list has two tabs:
+The list has three tabs:
 
 - **To print**, for reception. Tickets at the first stage (New) with no print time. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
-- **Repairs**, for fixers. Everything else that's open, grouped by stage, with "Also search completed" for recent closed tickets. Cards say Reprint rather than Print.
+- **Repairs**, for fixers. Everything else that's open, grouped by stage. Cards say Reprint rather than Print.
+- **Done**, for checking a session reached Restarters. It shows the latest session's completed items (the most recent day anything was completed), with "8 of 9 on Restarters" and each item's status. Sync failures from any day are listed at the top. "Show the last 90 days" widens it. Won't repair and No show don't sync, so they aren't counted.
+
+On the ticket page, Status sits in the sticky bar at the bottom with Save, so on a phone it's always to hand: In Progress when a fixer picks the item up, the outcome once the repair is written up.
 
 A ticket moved past New counts as checked in even if its sheet was never printed, so fixers can't lose it. Each device remembers its last tab in browser storage, so the reception laptop opens on To print and the fixers' tablets on Repairs. This replaced an earlier idea of disabling the Print button after use with a "print again" link.
 

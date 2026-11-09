@@ -137,7 +137,7 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
     <>
       <form onSubmit={save} className="ticket-form">
         <nav className="crumbs" aria-label="Breadcrumb">
-          <Link to="/">← Open repairs</Link>
+          <Link to="/">← Repairs</Link>
           <span aria-current="page">#{shortRef(ticket.id)}</span>
         </nav>
         <div className="page-title">
@@ -151,9 +151,6 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
         </p>
 
         <div className="row">
-          <Field label="Status">
-            <Select value={draft.hs_pipeline_stage} options={meta.stages.map((s) => ({ label: s.label, value: s.id }))} onChange={setStage} required />
-          </Field>
           <Field label="Fixer" hint={[prefilledFixer && draft.repair_fixer === prefilledFixer && !p.repair_fixer && "Filled in from this device", p.repair_fixers && `Worked on by ${p.repair_fixers}`].filter(Boolean).join(". ") || undefined}>
             <Select value={draft.repair_fixer} options={meta.options.repair_fixer ?? []} onChange={(v) => set("repair_fixer", v)} />
           </Field>
@@ -188,7 +185,14 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
 
         <RestartersPanel ticket={ticket} meta={meta} onChange={setTicket} disabled={dirty} />
 
+        {/* Status sits in the sticky bar with Save, so it's always to hand:
+            In Progress when a fixer picks the item up, the outcome once
+            they've written up the repair. */}
         <div className="save-bar">
+          <label className="save-status">
+            <span>Status</span>
+            <Select value={draft.hs_pipeline_stage} options={meta.stages.map((s) => ({ label: s.label, value: s.id }))} onChange={setStage} required />
+          </label>
           <button type="submit" disabled={!dirty || status.kind === "saving"}>
             {status.kind === "saving" ? "Saving…" : "Save"}
           </button>
