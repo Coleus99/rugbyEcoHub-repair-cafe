@@ -307,7 +307,7 @@ The list has three tabs:
 - **Repairs**, for fixers. Everything else that's open, grouped by stage. Cards say Reprint rather than Print.
 - **Done**, for checking a session reached Restarters. It shows the latest session's completed items (the most recent day anything was completed), with "8 of 9 on Restarters" and each item's status. Sync failures from any day are listed at the top. "Show the last 90 days" widens it. Won't repair and No show don't sync, so they aren't counted.
 
-On the ticket page, Status sits in the sticky bar at the bottom with Save, so on a phone it's always to hand: In Progress when a fixer picks the item up, the outcome once the repair is written up.
+On the ticket page, Status and Fixer are the first row of the Repair group, so a fixer picking an item up sets both together, and the outcome sits right above the repair write-up.
 
 A ticket moved past New counts as checked in even if its sheet was never printed, so fixers can't lose it. Each device remembers its last tab in browser storage, so the reception laptop opens on To print and the fixers' tablets on Repairs. This replaced an earlier idea of disabling the Print button after use with a "print again" link.
 

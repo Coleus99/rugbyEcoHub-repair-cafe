@@ -274,23 +274,6 @@ fieldset.group-repair {
   }
 }
 
-.save-status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1 1 14rem;
-  font-weight: 500;
-
-  select {
-    flex: 1;
-    min-width: 0;
-    padding: 0.5em;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-  }
-}
-
 /* Done tab */
 .done-summary {
   display: flex;

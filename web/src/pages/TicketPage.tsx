@@ -150,11 +150,6 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
           {bookingLabel(p) && ` · ${bookingLabel(p)}`}
         </p>
 
-        <div className="row">
-          <Field label="Fixer" hint={[prefilledFixer && draft.repair_fixer === prefilledFixer && !p.repair_fixer && "Filled in from this device", p.repair_fixers && `Worked on by ${p.repair_fixers}`].filter(Boolean).join(". ") || undefined}>
-            <Select value={draft.repair_fixer} options={meta.options.repair_fixer ?? []} onChange={(v) => set("repair_fixer", v)} />
-          </Field>
-        </div>
 
         <fieldset className="group-item">
           <legend>Item</legend>
@@ -176,6 +171,15 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
 
         <fieldset className="group-repair">
           <legend>Repair</legend>
+          {/* First, so a fixer picking an item up sets both straight away. */}
+          <div className="row">
+            <Field label="Status">
+              <Select value={draft.hs_pipeline_stage} options={meta.stages.map((s) => ({ label: s.label, value: s.id }))} onChange={setStage} required />
+            </Field>
+            <Field label="Fixer" hint={[prefilledFixer && draft.repair_fixer === prefilledFixer && !p.repair_fixer && "Filled in from this device", p.repair_fixers && `Worked on by ${p.repair_fixers}`].filter(Boolean).join(". ") || undefined}>
+              <Select value={draft.repair_fixer} options={meta.options.repair_fixer ?? []} onChange={(v) => set("repair_fixer", v)} />
+            </Field>
+          </div>
           {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did. Shared publicly on Restarters, so don't include names.")}
           {select("repair_spare_parts", "Spare parts", meta.options.repair_spare_parts ?? [])}
           {show.nextSteps && select("repair_next_steps", "Next steps", meta.options.repair_next_steps ?? [])}
@@ -185,14 +189,7 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
 
         <RestartersPanel ticket={ticket} meta={meta} onChange={setTicket} disabled={dirty} />
 
-        {/* Status sits in the sticky bar with Save, so it's always to hand:
-            In Progress when a fixer picks the item up, the outcome once
-            they've written up the repair. */}
         <div className="save-bar">
-          <label className="save-status">
-            <span>Status</span>
-            <Select value={draft.hs_pipeline_stage} options={meta.stages.map((s) => ({ label: s.label, value: s.id }))} onChange={setStage} required />
-          </label>
           <button type="submit" disabled={!dirty || status.kind === "saving"}>
             {status.kind === "saving" ? "Saving…" : "Save"}
           </button>
