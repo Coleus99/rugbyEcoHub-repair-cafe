@@ -15,7 +15,7 @@ export type Pipeline = {id: string; label: string; stages: Stage[]};
 export type PropertyOption = {label: string; value: string};
 export type Filter = {
   propertyName: string;
-  operator: "EQ" | "IN";
+  operator: "EQ" | "IN" | "GTE";
   value?: string;
   values?: string[];
 };
@@ -33,6 +33,16 @@ export class HubSpotError extends Error {
 }
 
 export type HubSpot = ReturnType<typeof createHubSpot>;
+
+const MAX_PAGES = 5;
+
+const chunks = <T>(items: T[], size = 100): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(items.slice(i, i + size));
+  }
+  return out;
+};
 
 export const createHubSpot = (token: string, fetchFn = fetch) => {
   const call = async <T>(
@@ -57,29 +67,37 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
     return data as T;
   };
 
+  // HubSpot returns search results 100 at a time. Follow the pages up to
+  // MAX_PAGES (500 tickets), far more than the open list or 90 days of
+  // completed repairs needs.
   const search = async (
     groups: Filter[][],
     properties: string[],
   ): Promise<Ticket[]> => {
-    const data = await call<{results: Ticket[]}>(
-      "POST",
-      "/crm/v3/objects/tickets/search",
-      {
+    const results: Ticket[] = [];
+    let after: string | undefined;
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const data = await call<{
+        results: Ticket[];
+        paging?: {next?: {after: string}};
+      }>("POST", "/crm/v3/objects/tickets/search", {
         filterGroups: groups.map((filters) => ({filters})),
         properties,
         sorts: [{propertyName: "createdate", direction: "ASCENDING"}],
         limit: 100,
-      },
-    );
-    return data.results;
+        ...(after ? {after} : {}),
+      });
+      results.push(...data.results);
+      after = data.paging?.next?.after;
+      if (!after) break;
+    }
+    return results;
   };
 
   return {
     getPipeline: (pipelineId: string) =>
       call<Pipeline>("GET", `/crm/v3/pipelines/tickets/${pipelineId}`),
 
-    // HubSpot search returns at most 100 per page. A session has far
-    // fewer open tickets than that, so one page is enough.
     searchTickets: (filters: Filter[], properties: string[]) =>
       search([filters], properties),
 
@@ -93,29 +111,33 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
 
     // First name of the contact on each ticket, keyed by ticket id. Only the
     // first name is read, to keep personal details out of the app.
+    // Batch reads take at most 100 ids, so larger lists go in chunks.
     firstNames: async (ticketIds: string[]) => {
-      const names: Record<string, string> = {};
-      if (ticketIds.length === 0) return names;
-      const links = await call<{
-        results: {from: {id: string}; to: {toObjectId: number}[]}[];
-      }>("POST", "/crm/v4/associations/tickets/contacts/batch/read", {
-        inputs: ticketIds.map((id) => ({id})),
-      });
       const contactOf: Record<string, string> = {};
-      for (const r of links.results) {
-        if (r.to[0]) contactOf[r.from.id] = String(r.to[0].toObjectId);
+      for (const ids of chunks(ticketIds)) {
+        const links = await call<{
+          results: {from: {id: string}; to: {toObjectId: number}[]}[];
+        }>("POST", "/crm/v4/associations/tickets/contacts/batch/read", {
+          inputs: ids.map((id) => ({id})),
+        });
+        for (const r of links.results) {
+          if (r.to[0]) contactOf[r.from.id] = String(r.to[0].toObjectId);
+        }
       }
-      const contactIds = [...new Set(Object.values(contactOf))];
-      if (contactIds.length === 0) return names;
-      const contacts = await call<{results: Ticket[]}>(
-        "POST",
-        "/crm/v3/objects/contacts/batch/read",
-        {properties: ["firstname"], inputs: contactIds.map((id) => ({id}))},
-      );
+
       const firstName: Record<string, string> = {};
-      for (const c of contacts.results) {
-        if (c.properties.firstname) firstName[c.id] = c.properties.firstname;
+      for (const ids of chunks([...new Set(Object.values(contactOf))])) {
+        const contacts = await call<{results: Ticket[]}>(
+          "POST",
+          "/crm/v3/objects/contacts/batch/read",
+          {properties: ["firstname"], inputs: ids.map((id) => ({id}))},
+        );
+        for (const c of contacts.results) {
+          if (c.properties.firstname) firstName[c.id] = c.properties.firstname;
+        }
       }
+
+      const names: Record<string, string> = {};
       for (const [ticketId, contactId] of Object.entries(contactOf)) {
         if (firstName[contactId]) names[ticketId] = firstName[contactId];
       }

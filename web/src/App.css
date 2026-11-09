@@ -70,6 +70,23 @@ main {
   }
 }
 
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.completed {
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid var(--border);
+}
+
+.group-title {
+  font-size: 1.3rem;
+}
+
 .page-title {
   display: flex;
   align-items: center;
@@ -384,11 +401,25 @@ legend {
     margin: 12mm;
   }
 
+  /* Always print black on white. Firefox doesn't know "only", so it uses the
+     first line. Other browsers use the second, which also stops their
+     automatic dark mode recolouring the page. */
   :root {
-    color-scheme: light;
+    color-scheme: light !important;
+    color-scheme: only light !important;
     --text: #000;
     --muted: #444;
     --bg: #fff;
+    --surface: #fff;
+    --border: #999;
+  }
+
+  html,
+  body,
+  #root,
+  .print-page {
+    background: #fff !important;
+    color: #000 !important;
   }
 
   .print-controls {

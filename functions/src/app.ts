@@ -97,6 +97,9 @@ export type AppDeps = {
   metaCacheMs?: number;
 };
 
+// How far back "Include completed" looks.
+export const COMPLETED_DAYS = 90;
+
 /** A 4xx we raise ourselves, with a message for the volunteer. */
 class BadRequest extends HubSpotError {}
 
@@ -191,6 +194,31 @@ export const createApp = (deps: AppDeps) => {
     res.json({
       tickets: tickets.map((t) => toDto(t, names[t.id])),
       failedSyncs,
+    });
+  });
+
+  // Tickets completed in the last COMPLETED_DAYS days, newest first, so a
+  // volunteer can fix a wrong outcome or add notes. Must be registered
+  // before /api/tickets/:id.
+  app.get("/api/tickets/completed", async (_req, res) => {
+    const {stages} = await getMeta();
+    const closed = stages.filter((s) => !s.open).map((s) => s.id);
+    if (closed.length === 0) {
+      res.json({tickets: []});
+      return;
+    }
+    const since = Date.now() - COMPLETED_DAYS * 24 * 60 * 60 * 1000;
+    const tickets = await deps.hubspot().searchTickets([
+      inPipeline(),
+      {propertyName: "hs_pipeline_stage", operator: "IN", values: closed},
+      {propertyName: "closed_date", operator: "GTE", value: String(since)},
+    ], READ_PROPERTIES);
+    tickets.sort((a, b) =>
+      compare(b.properties.closed_date, a.properties.closed_date));
+    const names = await firstNames(tickets.map((t) => t.id));
+    res.json({
+      tickets: tickets.map((t) => toDto(t, names[t.id])),
+      days: COMPLETED_DAYS,
     });
   });
 

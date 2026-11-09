@@ -54,6 +54,9 @@ export function getMeta(): Promise<Meta> {
 
 export const getTickets = () => apiFetch<{ tickets: Ticket[]; failedSyncs: number }>("/tickets");
 
+// Tickets completed in the last `days` days (90), newest first.
+export const getCompletedTickets = () => apiFetch<{ tickets: Ticket[]; days: number }>("/tickets/completed");
+
 export const getTicket = (id: string) =>
   apiFetch<{ ticket: Ticket }>(`/tickets/${id}`).then((r) => r.ticket);
 

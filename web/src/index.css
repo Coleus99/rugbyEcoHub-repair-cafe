@@ -9,22 +9,12 @@
   --error: #b42318;
 
   font: 16px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
-  color-scheme: light dark;
+  /* Light only. "only light" also stops a browser's automatic dark mode
+     recolouring the app (Firefox ignores it and uses the first line). */
+  color-scheme: light;
+  color-scheme: only light;
   color: var(--text);
   background: var(--bg);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #e6e8eb;
-    --muted: #9aa1aa;
-    --bg: #15171a;
-    --surface: #1e2125;
-    --border: #353a40;
-    --accent: #4caf73;
-    --accent-text: #0b1a10;
-    --error: #ff8a80;
-  }
 }
 
 * {

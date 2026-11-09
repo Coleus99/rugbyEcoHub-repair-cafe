@@ -40,6 +40,42 @@ describe("HubSpot client", () => {
     expect(body.filterGroups).toEqual([{filters}]);
   });
 
+  it("follows search pages until there are no more", async () => {
+    const fetchFn = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({
+        results: [{id: "1", properties: {}}],
+        paging: {next: {after: "100"}},
+      }))
+      .mockResolvedValueOnce(Response.json({
+        results: [{id: "2", properties: {}}],
+      }));
+    const hubspot = createHubSpot("t", fetchFn);
+
+    const tickets = await hubspot.searchTickets([], ["subject"]);
+
+    expect(tickets.map((t) => t.id)).toEqual(["1", "2"]);
+    const second = JSON.parse(fetchFn.mock.calls[1][1]?.body as string);
+    expect(second.after).toBe("100");
+  });
+
+  it("reads first names 100 at a time", async () => {
+    const ids = Array.from({length: 150}, (_, i) => String(i));
+    const fetchFn = vi.fn<typeof fetch>(async (url, init) => {
+      const inputs = JSON.parse(init?.body as string).inputs as {id: string}[];
+      return String(url).includes("associations") ?
+        Response.json({results: inputs.map(({id}) =>
+          ({from: {id}, to: [{toObjectId: Number(id) + 1000}]}))}) :
+        Response.json({results: inputs.map(({id}) =>
+          ({id, properties: {firstname: `N${id}`}}))});
+    });
+    const hubspot = createHubSpot("t", fetchFn);
+
+    const names = await hubspot.firstNames(ids);
+
+    expect(fetchFn).toHaveBeenCalledTimes(4); // 2 link reads, 2 name reads
+    expect(names["149"]).toBe("N1149");
+  });
+
   it("looks up first names through the ticket's contact", async () => {
     const fetchFn = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({results: [

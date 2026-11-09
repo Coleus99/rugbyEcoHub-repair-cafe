@@ -124,7 +124,7 @@ The app lists tickets in the Open stages and reads stage names and open/closed f
    - The result goes on the ticket: `restarters_sync_status` and `restarters_sync_error`. Missing category, item type, barrier or next steps are caught before calling Restarters, with a message saying what to fill in.
    - `POST /api/tickets/:id/sync` (Resync now), `POST /api/sync` (Resync failed, from the list page) and `DELETE /api/tickets/:id/restarters` (Remove from Restarters).
 7. ~~Print view.~~ A4 job sheet: condensed booking details, a QR code to the ticket page, write-in boxes, and tick boxes for outcome, spare parts, next steps and barrier. The Dymo label is still to do.
-8. ~~Search.~~ Filters the open list by item name, first name, short reference and category (see [Search](#search-open-tickets-only-in-the-browser)).
+8. ~~Search.~~ Filters by item name, first name, fixer, short reference and category, with an option to include repairs completed in the last 90 days (see [Search](#search-in-the-browser-open-tickets-plus-recent-completed-ones)).
 9. ~~Test against the sandbox.~~ Done 8 November 2026. Next, deploy to dev and try it on a phone, then prod.
 10. **Go live:** see [Go-live checklist](#go-live-checklist).
 11. Later: sync item images to Restarters. Move to individual logins if the shared one causes problems.
@@ -261,11 +261,13 @@ Moving a ticket out of a closed stage, or into No show, after it has synced leav
 
 If an item marked Needs follow-up is later repaired, the same device is updated to Fixed. It stays on the event it was first logged against.
 
-### Search: open tickets only, in the browser
+### Search: in the browser, open tickets plus recent completed ones
 
-The search box filters the open list as you type, so it's instant and makes no extra calls to HubSpot. Each word must match the start of a word in the item name or the customer's first name, or the short reference. The category dropdown only lists categories that open tickets use.
+The search box filters the list as you type, so it's instant and makes no extra calls to HubSpot. Each word must match the start of a word in the item name, the customer's first name or the fixer, or the short reference. The category dropdown only lists categories used by the tickets shown.
 
-Completed repairs aren't searchable. If someone brings an item back, it's booked as a new repair. That's fine for the stats, since it's been saved from landfill twice. Email search isn't supported, on purpose, to keep contact details out of the app.
+"Include completed" adds tickets completed in the last 90 days (`GET /api/tickets/completed`, `COMPLETED_DAYS` in `functions/src/app.ts`), grouped under each closed stage. They're only loaded when the box is ticked. It's for fixing an outcome set by mistake or adding notes afterwards. Saving a completed ticket at a stage that syncs updates the same Restarters device, because the device id is stored on the ticket.
+
+If someone brings an item back later, it's booked as a new repair. That's fine for the stats, since it's been saved from landfill twice. Email search isn't supported, on purpose, to keep contact details out of the app.
 
 ### Short reference
 

@@ -382,3 +382,38 @@ describe("addFixer", () => {
     expect(addFixer("Paul F", "Rob D")).toBe("Paul F; Rob D");
   });
 });
+
+describe("GET /api/tickets/completed", () => {
+  it("searches closed stages closed in the last 90 days", async () => {
+    vi.useFakeTimers({now: new Date("2026-11-09T12:00:00Z"), toFake: ["Date"]});
+    hubspot.searchTickets.mockResolvedValue([]);
+
+    const res = await get("/api/tickets/completed");
+    vi.useRealTimers();
+
+    expect(res.status).toBe(200);
+    expect(hubspot.getTicket).not.toHaveBeenCalled(); // not treated as an id
+    const closed = PIPELINE.stages
+      .filter((s) => s.metadata.ticketState === "CLOSED")
+      .map((s) => s.id);
+    expect(hubspot.searchTickets.mock.calls[0][0]).toEqual([
+      {propertyName: "hs_pipeline", operator: "EQ", value: "0"},
+      {propertyName: "hs_pipeline_stage", operator: "IN", values: closed},
+      {
+        propertyName: "closed_date",
+        operator: "GTE",
+        value: String(Date.parse("2026-08-11T12:00:00Z")),
+      },
+    ]);
+  });
+
+  it("lists the most recently completed first", async () => {
+    hubspot.searchTickets.mockResolvedValue([
+      ticket("older", {closed_date: "2026-11-07T11:00:00Z"}),
+      ticket("newer", {closed_date: "2026-11-08T11:00:00Z"}),
+    ]);
+    const res = await get("/api/tickets/completed");
+    expect(res.body.tickets.map((t: Ticket) => t.id))
+      .toEqual(["newer", "older"]);
+  });
+});

@@ -70,6 +70,13 @@ describe("API in the emulator", () => {
       .toContain("Margaret");
   });
 
+  it("lists recently completed tickets", async () => {
+    const res = await api("/tickets/completed");
+    expect(res.status).toBe(200);
+    const {tickets} = await res.json();
+    expect(Array.isArray(tickets)).toBe(true);
+  });
+
   it("404s for a ticket that doesn't exist", async () => {
     const res = await api("/tickets/1");
     expect(res.status).toBe(404);
