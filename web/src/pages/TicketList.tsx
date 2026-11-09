@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { getCompletedTickets, getMeta, getTickets, type Meta, type Stage, type Ticket } from "../lib/api";
-import { doneView } from "../lib/done";
+import { doneCount, doneView, followUpStages } from "../lib/done";
 import { formatDate } from "../lib/format";
 import { awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
@@ -15,9 +15,10 @@ type Completed = { tickets?: Ticket[]; days?: number; error?: string };
 //   printed, so people who haven't arrived yet.
 // - Repairs, for fixers: everything checked in, grouped by stage in board
 //   order, newest first.
-// - Done: the latest session's completed items and whether each reached
-//   Restarters, plus any sync failures. Can widen to the last 90 days to
-//   fix a wrong outcome or add notes afterwards.
+// - Done: sync failures and Needs follow-up items from any day, then the
+//   latest session's completed items and whether each reached Restarters.
+//   Searching it covers the last 90 days, to fix a wrong outcome or add
+//   notes afterwards.
 // The search box above the tabs searches all three. Each tab shows its
 // number of results, so you can see where an item is without switching.
 export default function TicketList() {
@@ -26,7 +27,6 @@ export default function TicketList() {
   const [tab, setTab] = useState<ListTab>(rememberedTab);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
-  const [showAllDone, setShowAllDone] = useState(false);
   const [completed, setCompleted] = useState<Completed>({});
 
   useEffect(() => {
@@ -70,7 +70,15 @@ export default function TicketList() {
 
   const firstStage = meta?.stages[0]?.id;
   const open = tickets ?? [];
-  const tabTickets = { toPrint: open.filter((t) => awaitingPrint(t, firstStage)), repairs: open.filter((t) => !awaitingPrint(t, firstStage)), done: completed.tickets ?? [] };
+  // Needs follow-up items are finished with for now, so they're on Done.
+  const followUp = followUpStages(meta?.stages ?? []);
+  const isFollowUp = (t: Ticket) => followUp.has(t.properties.hs_pipeline_stage ?? "");
+  const tabTickets = {
+    toPrint: open.filter((t) => awaitingPrint(t, firstStage)),
+    repairs: open.filter((t) => !awaitingPrint(t, firstStage) && !isFollowUp(t)),
+    followUps: open.filter(isFollowUp),
+    done: completed.tickets ?? [],
+  };
 
   const categories = categoriesInUse([...open, ...tabTickets.done], meta?.options.restarters_category);
   // Drop a chosen category once no listed ticket uses it (e.g. after Refresh).
@@ -79,15 +87,11 @@ export default function TicketList() {
   const filtering = !!query.trim() || !!activeCategory;
   const toPrint = matches(tabTickets.toPrint);
   const repairs = matches(tabTickets.repairs);
-  const done = meta && doneView(matches(tabTickets.done), meta.stages, showAllDone || filtering);
+  // Searching Done covers every day in the last 90, not just the session.
+  const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.followUps), meta.stages, filtering);
   // While searching, every tab shows how many results it has.
-  const doneShown = done ? done.failed.length + done.rest.length : 0;
-  // Done's total is what the tab shows when not searching: the latest
-  // session (or last 90 days) plus failures.
-  const doneAll = meta && doneView(tabTickets.done, meta.stages, showAllDone);
-  const doneTotal = completed.tickets && doneAll ? doneAll.failed.length + doneAll.rest.length : undefined;
-  // While searching, Done covers the whole 90 days.
-  const doneSearchTotal = completed.tickets?.length;
+  const doneAll = meta && doneView(tabTickets.done, tabTickets.followUps, meta.stages, filtering);
+  const doneTotal = completed.tickets && doneAll ? doneCount(doneAll) : undefined;
 
   return (
     <>
@@ -126,7 +130,7 @@ export default function TicketList() {
       <div className="tabs" role="tablist" aria-label="Which repairs">
         <TabButton current={tab} value="toPrint" onSelect={chooseTab} label="To print" total={tickets && tabTickets.toPrint.length} matches={filtering ? toPrint.length : undefined} />
         <TabButton current={tab} value="repairs" onSelect={chooseTab} label="Repairs" total={tickets && tabTickets.repairs.length} matches={filtering ? repairs.length : undefined} />
-        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" total={filtering ? doneSearchTotal : doneTotal} matches={filtering && completed.tickets ? doneShown : undefined} alert={failedSyncs ? `${failedSyncs} failed` : undefined} />
+        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" total={doneTotal} matches={filtering && done && completed.tickets ? doneCount(done) : undefined} alert={failedSyncs ? `${failedSyncs} failed` : undefined} />
       </div>
 
       {error && <p role="alert" className="error">{error}</p>}
@@ -153,20 +157,6 @@ export default function TicketList() {
           {!completed.error && !completed.tickets && <p>Loading…</p>}
           {done && completed.tickets && (
             <>
-              <div className="done-summary">
-                {done.day && !filtering && (
-                  <p>
-                    <strong>{formatDate(done.day)}</strong>: {done.synced} of {done.syncable} on Restarters
-                  </p>
-                )}
-                {!filtering && (
-                  <label className="checkbox">
-                    <input type="checkbox" checked={showAllDone} onChange={(e) => setShowAllDone(e.target.checked)} />
-                    Show the last {completed.days ?? 90} days
-                  </label>
-                )}
-              </div>
-
               {done.failed.length > 0 && (
                 <section className="failed-group">
                   <h2>
@@ -181,8 +171,18 @@ export default function TicketList() {
                 </section>
               )}
 
-              {done.failed.length + done.rest.length === 0 && <p>{filtering ? `Nothing completed in the last ${completed.days ?? 90} days matches.` : "Nothing completed yet."}</p>}
-              <StageGroups stages={meta.stages.filter((s) => !s.open)} tickets={done.rest} meta={meta} done />
+              {/* Follow-ups stay here whatever their date until they're
+                  reopened (In Progress) or closed. */}
+              <StageGroups stages={meta.stages.filter((s) => followUp.has(s.id))} tickets={done.followUps} meta={meta} done />
+
+              {done.day && !filtering && (
+                <h2 className="group-title">
+                  Latest session, {formatDate(done.day)} <span className="count">({done.synced} of {done.syncable} on Restarters)</span>
+                </h2>
+              )}
+              {filtering && done.completed.length > 0 && <h2 className="group-title">Completed in the last {completed.days ?? 90} days</h2>}
+              {doneCount(done) === 0 && <p>{filtering ? "Nothing done matches." : "Nothing done yet."}</p>}
+              <StageGroups stages={meta.stages.filter((s) => !s.open)} tickets={done.completed} meta={meta} done />
             </>
           )}
         </div>
@@ -231,7 +231,9 @@ function TicketCard({ ticket, meta, done }: { ticket: Ticket; meta: Meta; done?:
   const category = labelFor(meta.options.restarters_category, p.restarters_category);
   // Completed tickets show when they were completed rather than booked.
   const when = p.closed_date ? `Completed ${formatDate(p.closed_date)}` : bookingLabel(p);
-  const details = [ticket.firstName, category, p.repair_fixer && `Fixer ${p.repair_fixer}`, when].filter(Boolean);
+  // Follow-ups on Done also say what's next, e.g. "More time needed".
+  const nextStep = done && p.closed_date === null && labelFor(meta.options.repair_next_steps, p.repair_next_steps);
+  const details = [ticket.firstName, category, p.repair_fixer && `Fixer ${p.repair_fixer}`, nextStep && `Next: ${nextStep}`, when].filter(Boolean);
   const syncs = !!meta.stages.find((s) => s.id === p.hs_pipeline_stage)?.restartersStatus;
 
   return (

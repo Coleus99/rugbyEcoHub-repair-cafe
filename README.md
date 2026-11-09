@@ -304,8 +304,8 @@ Reception prints a job sheet when someone arrives, and that print is the check-i
 The list has three tabs:
 
 - **To print**, for reception. Tickets at the first stage (New) with no print time. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
-- **Repairs**, for fixers. Everything else that's open, grouped by stage. Cards say Reprint rather than Print.
-- **Done**, for checking a session reached Restarters. It shows the latest session's completed items (the most recent day anything was completed), with "8 of 9 on Restarters" and each item's status. Sync failures from any day are listed at the top. "Show the last 90 days" widens it. Won't repair and No show don't sync, so they aren't counted.
+- **Repairs**, for fixers. Everything else that's open, apart from Needs follow-up, grouped by stage. Cards say Reprint rather than Print.
+- **Done**, for items nobody is working on now. In order: sync failures from any day, Needs follow-up items from any day (with their next step), then the latest session's completed items (the most recent day anything was completed) with "8 of 9 on Restarters". There's no date filter. Searching covers everything completed in the last 90 days. Won't repair and No show don't sync, so they aren't counted.
 
 On the ticket page, Status and Fixer are the first row of the Repair group, so a fixer picking an item up sets both together, and the outcome sits right above the repair write-up.
 
@@ -314,6 +314,12 @@ A ticket moved past New counts as checked in even if its sheet was never printed
 If the repair cafe goes paperless later, check-in still needs something printed: a small label (e.g. a Dymo label) with the short reference, and perhaps the QR code, to stick on the item. The same rule then applies to the label. Printing it sets `repair_printed_at` and moves the ticket to Repairs, so the tabs don't change. Fixers would write the repair up in the app instead of on the sheet. A label page would be a new print layout alongside the A4 sheet, sized to the label roll.
 
 The booking confirmation email doesn't include the reference. It says to report to reception for a ticket number, so the printed sheet is the first time the visitor sees it. Suggested wording for the email in HubSpot: "When you arrive, please go to reception. We'll print a job sheet for your item and give you its 5-digit ticket number." The reference is the last 5 digits of the HubSpot ticket id, so it's digits, not letters.
+
+### Needs follow-up: reopen the same ticket, don't rebook
+
+An item marked Needs follow-up syncs to Restarters as Repairable, with its next step, and moves to the Done tab. It stays there, whatever its date, until someone changes its status. When the person brings it back, find it with search and set it to In Progress. It moves back to Repairs. Its final outcome (Repaired or Can't repair) then updates the same Restarters record, which stays on the event where the item was first seen. If they never come back, set it to Can't repair or Won't repair as appropriate.
+
+It isn't rebooked as a new ticket, because that would add a second Restarters record for the same item and count it twice. The app treats any open stage that syncs as a follow-up stage, so the rule doesn't depend on the stage's name.
 
 ### Short reference
 
