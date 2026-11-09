@@ -52,6 +52,9 @@ export function assignChanges(ticket: Ticket, fixer: string, stages: Stage[]): R
   return changes;
 }
 
+// Needs follow-up items (open stages that sync).
+export const isFollowUp = (ticket: Ticket, stages: Stage[]) => stages.some((s) => s.id === ticket.properties.hs_pipeline_stage && s.open && s.restartersStatus);
+
 // Needs follow-up items with "More time needed": they're coming back.
 export const isReturning = (ticket: Ticket, stages: Stage[]) =>
   comesBack(ticket.properties.repair_next_steps) && stages.some((s) => s.id === ticket.properties.hs_pipeline_stage && s.open && s.restartersStatus);

@@ -9,7 +9,8 @@ export type DoneView = {
   day?: string;
   // What to list, grouped by stage on the page: the latest session's
   // completed items (every day's when searching), plus sync failures from
-  // any day.
+  // any day, plus finished-with follow-ups (Professional help, Do it
+  // yourself) from any day.
   items: Ticket[];
   failed: number;
   // Of the latest session's completed items whose outcome goes to
@@ -26,7 +27,7 @@ type Options = {
   onlyFailed?: boolean;
 };
 
-export function doneView(completed: Ticket[], stages: Stage[], { sessionDay, allDays = false, onlyFailed = false }: Options = {}): DoneView {
+export function doneView(completed: Ticket[], followUps: Ticket[], stages: Stage[], { sessionDay, allDays = false, onlyFailed = false }: Options = {}): DoneView {
   const syncs = new Set(stages.filter((s) => s.restartersStatus).map((s) => s.id));
   const day =
     sessionDay ??
@@ -41,7 +42,7 @@ export function doneView(completed: Ticket[], stages: Stage[], { sessionDay, all
   const onDay = (t: Ticket) => !!day && !!t.properties.closed_date && ukDay(t.properties.closed_date) >= day;
   const failedSync = (t: Ticket) => t.properties.restarters_sync_status === "Error";
 
-  const all = completed.filter((t) => allDays || onDay(t) || failedSync(t));
+  const all = [...followUps, ...completed.filter((t) => allDays || onDay(t) || failedSync(t))];
   const session = completed.filter((t) => onDay(t) && syncs.has(t.properties.hs_pipeline_stage ?? ""));
   const failed = all.filter(failedSync);
   return {

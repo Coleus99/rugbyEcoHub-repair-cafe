@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { getCompletedTickets, getMeta, getTickets, updateTicket, type Meta, type Session, type Stage, type Ticket } from "../lib/api";
 import { doneView, ukDay } from "../lib/done";
 import { formatDate } from "../lib/format";
-import { assignChanges, awaitingPrint, isPrinted, isReturning, printGroups, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
+import { assignChanges, awaitingPrint, isFollowUp, isPrinted, isReturning, printGroups, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
 import { bookingLabel, labelFor } from "../lib/ticketForm";
 
@@ -15,7 +15,8 @@ type Completed = { tickets?: Ticket[]; days?: number; session?: Session | null; 
 //   printed, so people who haven't arrived yet.
 // - Repairs, for fixers: everything checked in, grouped by stage in board
 //   order, newest first.
-// - Done: the latest session's completed items, plus sync errors from any
+// - Done: the latest session's completed items, plus sync errors and
+//   finished-with follow-ups (Professional help, Do it yourself) from any
 //   day, and whether each reached Restarters.
 //   Searching it covers the last 90 days, to fix a wrong outcome or add
 //   notes afterwards.
@@ -77,9 +78,10 @@ export default function TicketList() {
   const groups = printGroups(open, meta?.stages ?? [], ukDay(new Date().toISOString()));
   const tabTickets = {
     toPrint: [...groups.today, ...groups.upcoming],
-    // Returning items wait on To print. Other Needs follow-up items
-    // (Professional help, Do it yourself) stay here.
-    repairs: open.filter((t) => !awaitingPrint(t, firstStage) && !isReturning(t, meta?.stages ?? [])),
+    // Needs follow-up items aren't being worked on: returning ones wait on
+    // To print, the rest (Professional help, Do it yourself) are on Done.
+    repairs: open.filter((t) => !awaitingPrint(t, firstStage) && !isFollowUp(t, meta?.stages ?? [])),
+    finishedFollowUps: open.filter((t) => isFollowUp(t, meta?.stages ?? []) && !isReturning(t, meta?.stages ?? [])),
     done: completed.tickets ?? [],
   };
 
@@ -93,9 +95,9 @@ export default function TicketList() {
   const printUpcoming = matches(groups.upcoming);
   const repairs = matches(tabTickets.repairs);
   // Searching Done covers every day in the last 90, not just the session.
-  const done = meta && doneView(matches(tabTickets.done), meta.stages, { sessionDay: completed.session?.date, allDays: filtering, onlyFailed });
+  const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.finishedFollowUps), meta.stages, { sessionDay: completed.session?.date, allDays: filtering, onlyFailed });
   // While searching, every tab shows how many results it has.
-  const doneAll = meta && doneView(tabTickets.done, meta.stages, { sessionDay: completed.session?.date, allDays: filtering });
+  const doneAll = meta && doneView(tabTickets.done, tabTickets.finishedFollowUps, meta.stages, { sessionDay: completed.session?.date, allDays: filtering });
   const doneTotal = completed.tickets && doneAll ? doneAll.items.length : undefined;
 
   return (
@@ -186,7 +188,7 @@ export default function TicketList() {
               {done.items.length === 0 && <p>{filtering ? "Nothing done matches." : "Nothing done yet."}</p>}
               {/* Needs follow-up and sync failures are included whatever
                   their date, until they're reopened, closed or fixed. */}
-              <StageGroups stages={meta.stages.filter((s) => !s.open)} tickets={done.items} meta={meta} done />
+              <StageGroups stages={meta.stages.filter((s) => !s.open || s.restartersStatus)} tickets={done.items} meta={meta} done />
             </>
           )}
         </div>
