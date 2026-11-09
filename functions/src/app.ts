@@ -12,7 +12,7 @@ import {
   type PropertyOption,
   type Ticket,
 } from "./hubspot";
-import type {Restarters} from "./restarters";
+import {londonDate, type Restarters} from "./restarters";
 import {
   removeFromRestarters,
   syncTicket,
@@ -96,7 +96,11 @@ export type AppDeps = {
   syncConfig: () => SyncConfig;
   verifyToken: (token: string) => Promise<unknown>;
   metaCacheMs?: number;
+  now?: () => Date;
 };
+
+// The group's most recent repair session (Restarters event) up to today.
+export type Session = {id: number; date: string; start: string; title: string};
 
 // How far back "Also search completed" looks.
 export const COMPLETED_DAYS = 90;
@@ -146,6 +150,35 @@ export const createApp = (deps: AppDeps) => {
   app.get("/api/meta", async (_req, res) => {
     res.json(await getMeta());
   });
+
+  // The latest session changes at most once a week, so cache it briefly.
+  // If Restarters can't be reached, carry on without it.
+  let sessionCache: {value: Session | null; expires: number} | undefined;
+  const latestSession = async (): Promise<Session | null> => {
+    if (sessionCache && sessionCache.expires > Date.now()) {
+      return sessionCache.value;
+    }
+    let value: Session | null = null;
+    try {
+      const today = londonDate(deps.now?.() ?? new Date());
+      const event = await deps.restarters().latestEventOnOrBefore(
+        deps.syncConfig().groupId, today,
+      );
+      if (event) {
+        value = {
+          id: event.id,
+          start: event.start,
+          title: event.title,
+          date: londonDate(new Date(event.start)),
+        };
+      }
+    } catch (err) {
+      console.warn("Couldn't look up the latest Restarters session", err);
+      return null;
+    }
+    sessionCache = {value, expires: Date.now() + 10 * 60 * 1000};
+    return value;
+  };
 
   const syncDeps = (): SyncDeps => ({
     hubspot: deps.hubspot(),
@@ -207,8 +240,9 @@ export const createApp = (deps: AppDeps) => {
   app.get("/api/tickets/completed", async (_req, res) => {
     const {stages} = await getMeta();
     const closed = stages.filter((s) => !s.open).map((s) => s.id);
+    const session = await latestSession();
     if (closed.length === 0) {
-      res.json({tickets: []});
+      res.json({tickets: [], days: COMPLETED_DAYS, session});
       return;
     }
     const since = Date.now() - COMPLETED_DAYS * 24 * 60 * 60 * 1000;
@@ -223,6 +257,7 @@ export const createApp = (deps: AppDeps) => {
     res.json({
       tickets: tickets.map((t) => toDto(t, names[t.id])),
       days: COMPLETED_DAYS,
+      session,
     });
   });
 
@@ -244,12 +279,12 @@ export const createApp = (deps: AppDeps) => {
     const properties = parseEdits(req.body?.properties);
 
     const stage = properties.hs_pipeline_stage;
-    if (stage !== undefined) {
-      const {stages} = await getMeta();
-      if (!stages.some((s) => s.id === stage)) {
-        throw new BadRequest(400, `Unknown status: ${stage}`);
-      }
+    const {stages} = await getMeta();
+    if (stage !== undefined && !stages.some((s) => s.id === stage)) {
+      throw new BadRequest(400, `Unknown status: ${stage}`);
     }
+    const isOpen = (id?: string | null) =>
+      stages.find((s) => s.id === id)?.open ?? true;
 
     // 404 if it isn't a repair ticket.
     const before = await getRepairTicket(deps, id);
@@ -260,6 +295,17 @@ export const createApp = (deps: AppDeps) => {
       );
     }
     await deps.hubspot().updateTicket(id, properties);
+    // Closed after the session, e.g. typed up from paper sheets the next
+    // day: date it to the session it happened at. HubSpot sets
+    // closed_date when the stage changes, so this comes after.
+    const wasOpen = isOpen(before.properties.hs_pipeline_stage);
+    if (stage && !isOpen(stage) && wasOpen) {
+      const session = await latestSession();
+      const today = londonDate(deps.now?.() ?? new Date());
+      if (session && session.date < today) {
+        await deps.hubspot().updateTicket(id, {closed_date: session.start});
+      }
+    }
     let ticket = await getRepairTicket(deps, id);
     const sync = await syncTicket(syncDeps(), ticket);
     if (sync.status !== "Skipped") ticket = await getRepairTicket(deps, id);

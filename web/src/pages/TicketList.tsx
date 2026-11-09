@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { getCompletedTickets, getMeta, getTickets, type Meta, type Stage, type Ticket } from "../lib/api";
+import { getCompletedTickets, getMeta, getTickets, type Meta, type Session, type Stage, type Ticket } from "../lib/api";
 import { doneView, followUpStages } from "../lib/done";
 import { formatDate } from "../lib/format";
 import { awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
@@ -8,7 +8,7 @@ import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
 import { bookingLabel, labelFor } from "../lib/ticketForm";
 
 type State = { meta?: Meta; tickets?: Ticket[]; failedSyncs?: number; error?: string };
-type Completed = { tickets?: Ticket[]; days?: number; error?: string };
+type Completed = { tickets?: Ticket[]; days?: number; session?: Session | null; error?: string };
 
 // Repair tickets in three tabs:
 // - To print, for reception: new bookings whose job sheet hasn't been
@@ -50,7 +50,7 @@ export default function TicketList() {
     if (!wantCompleted) return;
     let cancelled = false;
     getCompletedTickets().then(
-      ({ tickets, days }) => !cancelled && setCompleted({ tickets, days }),
+      ({ tickets, days, session }) => !cancelled && setCompleted({ tickets, days, session }),
       (err: Error) => !cancelled && setCompleted((c) => ({ ...c, error: err.message })),
     );
     return () => {
@@ -89,9 +89,9 @@ export default function TicketList() {
   const toPrint = matches(tabTickets.toPrint);
   const repairs = matches(tabTickets.repairs);
   // Searching Done covers every day in the last 90, not just the session.
-  const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.followUps), meta.stages, filtering, onlyFailed);
+  const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.followUps), meta.stages, { sessionDay: completed.session?.date, allDays: filtering, onlyFailed });
   // While searching, every tab shows how many results it has.
-  const doneAll = meta && doneView(tabTickets.done, tabTickets.followUps, meta.stages, filtering);
+  const doneAll = meta && doneView(tabTickets.done, tabTickets.followUps, meta.stages, { sessionDay: completed.session?.date, allDays: filtering });
   const doneTotal = completed.tickets && doneAll ? doneAll.items.length : undefined;
 
   return (

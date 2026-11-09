@@ -305,7 +305,7 @@ The list has three tabs:
 
 - **To print**, for reception. Tickets at the first stage (New) with no print time. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
 - **Repairs**, for fixers. Everything else that's open, apart from Needs follow-up, grouped by stage. Cards say Reprint rather than Print.
-- **Done**, for items nobody is working on now. One list under "Latest session, Sat 21 Nov (8 of 9 on Restarters)", grouped by stage: Needs follow-up, Repaired, Can't repair and so on. The latest session is the most recent day anything was completed. Needs follow-up items and sync failures are included whatever their date. Failed items stay in their stage group with a "Sync failed" label and the reason. When there are any, a row at the top says "3 failed syncs" with a "Show only sync failures" checkbox. Searching covers everything completed in the last 90 days. Won't repair and No show don't sync, so they aren't counted.
+- **Done**, for items nobody is working on now. One list under "Latest session, Sat 21 Nov (8 of 9 on Restarters)", grouped by stage: Needs follow-up, Repaired, Can't repair and so on. The latest session is group 116's most recent Restarters event up to today, returned with the completed list. Anything completed on or after its date counts as part of it. If Restarters can't be reached, it falls back to the most recent day anything was completed. Needs follow-up items and sync failures are included whatever their date. Failed items stay in their stage group with a "Sync failed" label and the reason. When there are any, a row at the top says "3 failed syncs" with a "Show only sync failures" checkbox. Searching covers everything completed in the last 90 days. Won't repair and No show don't sync, so they aren't counted.
 
 On the ticket page, Status and Fixer are the first row of the Repair group, so a fixer picking an item up sets both together, and the outcome sits right above the repair write-up.
 
@@ -314,6 +314,10 @@ A ticket moved past New counts as checked in even if its sheet was never printed
 If the repair cafe goes paperless later, check-in still needs something printed: a small label (e.g. a Dymo label) with the short reference, and perhaps the QR code, to stick on the item. The same rule then applies to the label. Printing it sets `repair_printed_at` and moves the ticket to Repairs, so the tabs don't change. Fixers would write the repair up in the app instead of on the sheet. A label page would be a new print layout alongside the A4 sheet, sized to the label roll.
 
 The booking confirmation email doesn't include the reference. It says to report to reception for a ticket number, so the printed sheet is the first time the visitor sees it. Suggested wording for the email in HubSpot: "When you arrive, please go to reception. We'll print a job sheet for your item and give you its 5-digit ticket number." The reference is the last 5 digits of the HubSpot ticket id, so it's digits, not letters.
+
+### Closing after the session: dated to the session
+
+Volunteers may run out of time and type up outcomes from the paper sheets a day or two later. When a ticket moves from an open stage to a closed one after the latest session's day, the app sets `closed_date` to that session's start time, after HubSpot sets its own. HubSpot's reports and the Done tab then show the item as completed at the session, not on the day it was typed up. A ticket closed on the day of the session keeps its real time, and editing an already-closed ticket doesn't change it. Restarters already gets this right, because the sync uses the latest event on or before the close date.
 
 ### Needs follow-up: reopen the same ticket, don't rebook
 

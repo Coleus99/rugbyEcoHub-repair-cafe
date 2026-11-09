@@ -447,3 +447,57 @@ describe("GET /api/tickets/completed", () => {
       .toEqual(["newer", "older"]);
   });
 });
+
+describe("closing after the session", () => {
+  // Saturday's session. Can't repair (4) is a closed stage.
+  const SESSION = {id: 19170, start: "2026-11-21T10:00:00Z", title: "Sat"};
+  const appOn = (now: string) => createApp({
+    hubspot: () => hubspot as unknown as HubSpot,
+    pipelineId: () => "0",
+    restarters: () => restarters as unknown as Restarters,
+    syncConfig: () => ({groupId: "116", stageStatus: {}}),
+    verifyToken: async () => undefined,
+    now: () => new Date(now),
+  });
+  const close = (now: string) => request(appOn(now))
+    .patch(`/api/tickets/${TICKET.id}`).set("Authorization", "Bearer x")
+    .send({properties: {hs_pipeline_stage: "4"}});
+
+  beforeEach(() => {
+    restarters.latestEventOnOrBefore.mockResolvedValue(SESSION);
+  });
+
+  it("dates a ticket closed the next day to the session", async () => {
+    await close("2026-11-23T09:00:00Z");
+    expect(restarters.latestEventOnOrBefore)
+      .toHaveBeenCalledWith("116", "2026-11-23");
+    expect(hubspot.updateTicket).toHaveBeenLastCalledWith(TICKET.id,
+      {closed_date: "2026-11-21T10:00:00Z"});
+  });
+
+  it("leaves the close time alone on the day of the session", async () => {
+    await close("2026-11-21T15:00:00Z");
+    expect(hubspot.updateTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it("doesn't re-date a ticket that was already closed", async () => {
+    hubspot.getTicket.mockResolvedValue(
+      ticket(TICKET.id, {hs_pipeline_stage: "6385079534"}),
+    );
+    await close("2026-11-23T09:00:00Z");
+    expect(hubspot.updateTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it("still saves if Restarters can't be reached", async () => {
+    restarters.latestEventOnOrBefore.mockRejectedValue(new Error("down"));
+    const res = await close("2026-11-23T09:00:00Z");
+    expect(res.status).toBe(200);
+    expect(hubspot.updateTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the latest session with completed tickets", async () => {
+    const res = await request(appOn("2026-11-23T09:00:00Z"))
+      .get("/api/tickets/completed").set("Authorization", "Bearer x");
+    expect(res.body.session).toEqual({...SESSION, date: "2026-11-21"});
+  });
+});

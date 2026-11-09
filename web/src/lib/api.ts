@@ -11,6 +11,8 @@ export type SyncResult =
 // restartersStatus is set for stages that sync: Fixed, Repairable or End of life.
 export type Stage = { id: string; label: string; open: boolean; restartersStatus: string | null };
 export type Option = { label: string; value: string };
+// The latest repair session (Restarters event) up to today.
+export type Session = { id: number; date: string; start: string; title: string };
 export type Meta = { stages: Stage[]; options: Record<string, Option[]> };
 
 export class ApiError extends Error {
@@ -55,7 +57,7 @@ export function getMeta(): Promise<Meta> {
 export const getTickets = () => apiFetch<{ tickets: Ticket[]; failedSyncs: number }>("/tickets");
 
 // Tickets completed in the last `days` days (90), newest first.
-export const getCompletedTickets = () => apiFetch<{ tickets: Ticket[]; days: number }>("/tickets/completed");
+export const getCompletedTickets = () => apiFetch<{ tickets: Ticket[]; days: number; session: Session | null }>("/tickets/completed");
 
 export const getTicket = (id: string) =>
   apiFetch<{ ticket: Ticket }>(`/tickets/${id}`).then((r) => r.ticket);

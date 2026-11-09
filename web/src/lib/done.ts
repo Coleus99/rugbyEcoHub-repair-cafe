@@ -8,7 +8,8 @@ export const ukDay = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZon
 export const followUpStages = (stages: Stage[]) => new Set(stages.filter((s) => s.open && s.restartersStatus).map((s) => s.id));
 
 export type DoneView = {
-  // The most recent day anything was completed: the latest session.
+  // The latest session's date: the most recent Restarters event, or if
+  // that isn't known, the most recent day anything was completed.
   day?: string;
   // What to list, grouped by stage on the page: the latest session's
   // completed items (every day's when searching), plus Needs follow-up
@@ -21,15 +22,27 @@ export type DoneView = {
   syncable: number;
 };
 
-export function doneView(completed: Ticket[], followUps: Ticket[], stages: Stage[], allDays: boolean, onlyFailed = false): DoneView {
+type Options = {
+  // The latest Restarters session's date, YYYY-MM-DD.
+  sessionDay?: string;
+  // Searching: list every day's completed items, not just the session's.
+  allDays?: boolean;
+  onlyFailed?: boolean;
+};
+
+export function doneView(completed: Ticket[], followUps: Ticket[], stages: Stage[], { sessionDay, allDays = false, onlyFailed = false }: Options = {}): DoneView {
   const syncs = new Set(stages.filter((s) => s.restartersStatus).map((s) => s.id));
-  const day = completed
-    .map((t) => t.properties.closed_date)
-    .filter((d): d is string => !!d)
-    .map(ukDay)
-    .sort()
-    .at(-1);
-  const onDay = (t: Ticket) => !!day && !!t.properties.closed_date && ukDay(t.properties.closed_date) === day;
+  const day =
+    sessionDay ??
+    completed
+      .map((t) => t.properties.closed_date)
+      .filter((d): d is string => !!d)
+      .map(ukDay)
+      .sort()
+      .at(-1);
+  // On or after, so anything closed since the session (e.g. typed up from
+  // paper the next day) counts as part of it.
+  const onDay = (t: Ticket) => !!day && !!t.properties.closed_date && ukDay(t.properties.closed_date) >= day;
   const failedSync = (t: Ticket) => t.properties.restarters_sync_status === "Error";
 
   const all = [...followUps, ...completed.filter((t) => allDays || onDay(t) || failedSync(t))];
