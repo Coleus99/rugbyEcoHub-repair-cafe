@@ -133,7 +133,7 @@ export default function TicketList() {
       <div className="tabs" role="tablist" aria-label="Which repairs">
         <TabButton current={tab} value="toPrint" onSelect={chooseTab} label="To print" total={tickets && tabTickets.toPrint.length} matches={filtering ? toPrint.length : undefined} />
         <TabButton current={tab} value="repairs" onSelect={chooseTab} label="Repairs" total={tickets && tabTickets.repairs.length} matches={filtering ? repairs.length : undefined} />
-        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" total={doneTotal} matches={filtering && done && completed.tickets ? done.items.length : undefined} alert={failedSyncs ? `${failedSyncs} failed` : undefined} />
+        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" total={doneTotal} matches={filtering && done && completed.tickets ? done.items.length : undefined} alert={failedSyncs ? `${failedSyncs} ${failedSyncs === 1 ? "error" : "errors"}` : undefined} />
       </div>
 
       {error && <p role="alert" className="error">{error}</p>}
@@ -174,13 +174,13 @@ export default function TicketList() {
                 <div className="failed-row">
                   <p>
                     <strong className="error">
-                      {done.failed} failed {done.failed === 1 ? "sync" : "syncs"}
+                      {done.failed} {done.failed === 1 ? "error" : "errors"}
                     </strong>
-                    . Open each to see what Restarters needs, fix it and save.
+                    : {done.failed === 1 ? "this item hasn't" : "these items haven't"} synced to Restarters. Open each one to see why, fix it and save.
                   </p>
                   <label className="checkbox">
                     <input type="checkbox" checked={onlyFailed} onChange={(e) => setOnlyFailed(e.target.checked)} />
-                    Show only sync failures
+                    Show only errors
                   </label>
                 </div>
               )}
@@ -198,7 +198,7 @@ export default function TicketList() {
 }
 
 // "Repairs (12)", or "Repairs (3 of 12)" while searching. Done can add
-// "· 1 failed".
+// "· 1 error" (a sync to Restarters that failed).
 function TabButton({ current, value, onSelect, label, total, matches, alert }: { current: ListTab; value: ListTab; onSelect: (tab: ListTab) => void; label: string; total?: number; matches?: number; alert?: string }) {
   const count = total === undefined ? "" : matches === undefined ? `(${total})` : `(${matches} of ${total})`;
   return (
@@ -250,7 +250,7 @@ function TicketCard({ ticket, meta, done, onAssign }: { ticket: Ticket; meta: Me
       <Link to={`/tickets/${ticket.id}`} className="ticket-main">
         <span className="ref">#{shortRef(ticket.id)}</span> <strong>{p.subject || "(no name)"}</strong>
         {makeModel && <span> · {makeModel}</span>}
-        {p.restarters_sync_status === "Error" && <span className="badge error"> Sync failed</span>}
+        {p.restarters_sync_status === "Error" && <span className="badge error"> Sync error</span>}
         <div className="muted">{details.join(" · ")}</div>
         {done && p.restarters_sync_status === "Error" && <div className="error">{p.restarters_sync_error}</div>}
         {!done && p.content && <div className="issue">{p.content}</div>}
@@ -292,7 +292,7 @@ function AssignFixer({ ticket, meta, onSaved }: { ticket: Ticket; meta: Meta; on
   return (
     <>
       <select aria-label={`Fixer for ${ticket.properties.subject ?? "item"}`} className="assign-fixer" value={fixer} disabled={busy} onChange={(e) => assign(e.target.value)}>
-        {!fixer && <option value="">Assign fixer</option>}
+        <option value="">{fixer ? "No fixer" : "Assign fixer"}</option>
         {(meta.options.repair_fixer ?? []).map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

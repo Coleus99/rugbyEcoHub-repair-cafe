@@ -270,7 +270,7 @@ function RestartersPanel({ ticket, meta, onChange, disabled }: { ticket: Ticket;
       <legend>Restarters</legend>
       <p>
         {p.restarters_sync_status === "Synced" && `Synced as device ${deviceId} on event ${p.restarters_event_id}.`}
-        {p.restarters_sync_status === "Error" && <span className="error">Sync failed: {p.restarters_sync_error}</span>}
+        {p.restarters_sync_status === "Error" && <span className="error">Sync error: {p.restarters_sync_error}</span>}
         {!p.restarters_sync_status && "Not yet synced."}
         {p.restarters_sync_status === "Not synced" && "Removed from Restarters. Resync to add it again."}
         {p.restarters_sync_status !== "Synced" && syncing.length > 0 && <span className="muted"> Saving with status {quotedList(syncing)} sends it to Restarters.</span>}
