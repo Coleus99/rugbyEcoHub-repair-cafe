@@ -2,7 +2,7 @@
   "name": "repair-cafe",
   "private": true,
   "scripts": {
-    "deploy:dev": "npm --prefix web run build -- --mode development && firebase deploy --project dev",
-    "deploy:prod": "npm --prefix web run build && firebase deploy --project prod"
+    "deploy:dev": "npm --prefix web run build -- --mode development && firebase deploy --project dev && gcloud run services update api --region=europe-west2 --project=repair-cafe-dev --no-invoker-iam-check --quiet",
+    "deploy:prod": "npm --prefix web run build && firebase deploy --project prod && gcloud run services update api --region=europe-west2 --project=repair-cafe-prod --no-invoker-iam-check --quiet"
   }
 }

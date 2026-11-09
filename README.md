@@ -197,7 +197,7 @@ Deploy to dev:
 npm run deploy:dev
 ```
 
-This builds the web app with the dev Firebase settings (`web/.env.development`) and deploys to `repair-cafe-dev`. A plain `npm --prefix web run build` uses the prod settings, so don't deploy that to dev. `npm run deploy:prod` does the same for prod.
+This builds the web app with the dev Firebase settings (`web/.env.development`) and deploys to `repair-cafe-dev`. It then switches off Cloud Run's own invoker check on the `api` function (see below), which needs `gcloud` signed in (`gcloud auth login --no-launch-browser`). A plain `npm --prefix web run build` uses the prod settings, so don't deploy that to dev. `npm run deploy:prod` does the same for prod.
 
 If the functions deploy fails with "missing permission on the build service account", the project's default compute service account needs the Cloud Build role. New Google Cloud projects no longer give it one automatically. Run this once per project (the number is the project number, shown in the error's link and in Firebase project settings):
 
@@ -206,6 +206,14 @@ gcloud projects add-iam-policy-binding repair-cafe-dev \
   --member=serviceAccount:752138277359-compute@developer.gserviceaccount.com \
   --role=roles/cloudbuild.builds.builder
 ```
+
+If the site loads but every API call fails with 401 and the function log says "The request was not authorized to invoke this service", Cloud Run is blocking the call before it reaches the app. Firebase normally makes functions public by granting `allUsers` the invoker role, but the rugbyecohub.org organisation policy only allows its own accounts, so that grant fails. The deploy scripts run this instead, which turns off Cloud Run's check for this one service:
+
+```bash
+gcloud run services update api --region=europe-west2 --project=repair-cafe-dev --no-invoker-iam-check
+```
+
+This is safe because the app checks every request itself: a valid Firebase sign-in from an account in `ALLOWED_EMAILS`, or 401.
 
 ### Layout
 
