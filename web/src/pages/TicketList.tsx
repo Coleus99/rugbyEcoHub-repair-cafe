@@ -229,13 +229,16 @@ function PrintGroup({ title, tickets, meta }: { title: string; tickets: Ticket[]
 
 // One section per stage that has tickets, in board order.
 function StageGroups({ stages, tickets, meta, done, onAssign }: { stages: Stage[]; tickets: Ticket[]; meta: Meta; done?: boolean; onAssign?: (t: Ticket) => void }) {
+  // On Done, the only follow-ups are ones handed on (Professional help,
+  // Do it yourself), so say so.
+  const label = (stage: Stage) => (done && stage.open && stage.restartersStatus ? `${stage.label} (outside the repair cafe)` : stage.label);
   return stages.map((stage) => {
     const inStage = tickets.filter((t) => t.properties.hs_pipeline_stage === stage.id);
     if (inStage.length === 0) return null;
     return (
       <section key={stage.id}>
         <h2>
-          {stage.label} <span className="count">{inStage.length}</span>
+          {label(stage)} <span className="count">{inStage.length}</span>
         </h2>
         <ul className="ticket-list">
           {inStage.map((t) => (
