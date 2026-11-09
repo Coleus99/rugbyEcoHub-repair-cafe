@@ -85,18 +85,18 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
     setStatus({ kind: "idle" });
   };
 
-  // Changing the category fills in the item type, unless the volunteer has
-  // typed their own.
+  // Restarters needs an item type. For most categories it's the category
+  // name without the size, filled in here (and again by the server when it
+  // syncs). Misc items need one typed in, so switching to Misc clears it.
   const setCategory = (value: string) => {
     const options = meta.options.restarters_category;
-    const oldSuggestion = itemTypeFromCategory(labelFor(options, draft.restarters_category));
     setDraft((d) =>
       withFixer({
         ...d,
         restarters_category: value,
         // Weight is only asked for on Misc items, so drop it otherwise.
         repair_item_weight_kg: needsWeight(value) ? d.repair_item_weight_kg : "",
-        repair_item_type: !d.repair_item_type || d.repair_item_type === oldSuggestion ? itemTypeFromCategory(labelFor(options, value)) : d.repair_item_type,
+        repair_item_type: !needsWeight(value) ? itemTypeFromCategory(labelFor(options, value)) : needsWeight(d.restarters_category) ? d.repair_item_type : "",
       }),
     );
     setStatus({ kind: "idle" });
@@ -159,14 +159,14 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
           </Field>
         </div>
 
-        <fieldset>
+        <fieldset className="group-item">
           <legend>Item</legend>
           {text("subject", "Item name", { required: true })}
           {area("content", "Issue")}
           <Field label="Category">
             <Select value={draft.restarters_category} options={meta.options.restarters_category ?? []} onChange={setCategory} />
           </Field>
-          {text("repair_item_type", "Item type", { hint: "A short generic name, e.g. Toaster. Used in Restarters stats." })}
+          {needsWeight(draft.restarters_category) && text("repair_item_type", "Item type", { hint: "A short plain name, e.g. Sewing machine. Restarters needs this for Misc items." })}
           <div className="row">
             {text("repair_item_brand", "Brand")}
             {text("repair_item_model", "Model")}
@@ -177,7 +177,7 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
           </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset className="group-repair">
           <legend>Repair</legend>
           {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did")}
           {select("repair_spare_parts", "Spare parts", meta.options.repair_spare_parts ?? [])}

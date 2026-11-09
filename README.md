@@ -78,7 +78,7 @@ The live portal already has a repair form that creates tickets. The new form kee
 | Requested date | `requested_repair_date` | none | Existing. Filled by the date dropdown script. For host planning only. |
 | Image | `repair_item_image` | `images` | Existing. Not synced yet. |
 | Category | `restarters_category` | `category` | **New.** Replaces `repair_item_category`. |
-| Item type | `repair_item_type` | `item_type` (required) | **New.** Set by volunteers in the app, not on the booking form. |
+| Item type | `repair_item_type` | `item_type` (required) | **New.** Filled in from the category when the ticket syncs. Only asked for (in the app and on the job sheet) for the Misc categories. |
 | Model | `repair_item_model` | `model` | **New** |
 | Weight (kg) | `repair_item_weight_kg` | `estimate` | **New.** Only asked for and sent for the Misc categories (46, 50). Restarters uses its own average weight for the rest. |
 | Problem and fix | `repair_problem_and_fix` | `problem` | **New** |
@@ -266,7 +266,7 @@ If an item marked Needs follow-up is later repaired, the same device is updated 
 
 The search box filters the list as you type, so it's instant and makes no extra calls to HubSpot. Each word must match the start of a word in the item name, the customer's first name or the fixer, or the short reference. The category dropdown only lists categories used by the tickets shown.
 
-"Include completed" adds tickets completed in the last 90 days (`GET /api/tickets/completed`, `COMPLETED_DAYS` in `functions/src/app.ts`), grouped under each closed stage. They're only loaded when the box is ticked. It's for fixing an outcome set by mistake or adding notes afterwards. Saving a completed ticket at a stage that syncs updates the same Restarters device, because the device id is stored on the ticket.
+"Also search completed" adds tickets completed in the last 90 days (`GET /api/tickets/completed`, `COMPLETED_DAYS` in `functions/src/app.ts`), grouped under each closed stage. They're only loaded when the box is ticked. It's for fixing an outcome set by mistake or adding notes afterwards. Saving a completed ticket at a stage that syncs updates the same Restarters device, because the device id is stored on the ticket.
 
 If someone brings an item back later, it's booked as a new repair. That's fine for the stats, since it's been saved from landfill twice. Email search isn't supported, on purpose, to keep contact details out of the app.
 
@@ -277,7 +277,7 @@ Reception prints a job sheet when someone arrives, and that print is the check-i
 The list has two tabs:
 
 - **To print**, for reception. Tickets at the first stage (New) with no print time. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
-- **Repairs**, for fixers. Everything else that's open, grouped by stage, with "Include completed" for recent closed tickets. Cards say Reprint rather than Print.
+- **Repairs**, for fixers. Everything else that's open, grouped by stage, with "Also search completed" for recent closed tickets. Cards say Reprint rather than Print.
 
 A ticket moved past New counts as checked in even if its sheet was never printed, so fixers can't lose it. Each device remembers its last tab in browser storage, so the reception laptop opens on To print and the fixers' tablets on Repairs. This replaced an earlier idea of disabling the Print button after use with a "print again" link.
 
@@ -291,11 +291,15 @@ Each ticket shows a short reference, the last five digits of the HubSpot ticket 
 
 A position such as "item 3 of 12" wasn't used, because it changes as items are added or completed. Two open tickets could share the same last five digits, but it's unlikely with a session's worth of items, and the item name and first name tell them apart.
 
-### Item type: set in the app, not by customers
+### Item type: filled in from the category, asked for only on Misc
 
-Restarters requires `item_type`, a short name for the item such as "Laptop" or "Toaster". It's what Restarters uses for its repair statistics, so it needs to be generic. It's different from the ticket name, which is whatever the customer typed, for example "Dad's old Roberts radio".
+Restarters requires `item_type`, a short plain name for the item such as "Laptop" or "Toaster". It's free text and Restarters doesn't calculate anything from it. Its CO2 and waste figures come from the category (and the weight, for Misc). Their suggestions list (`GET /api/v2/items`) holds over 18,000 free-text entries from every group, so it isn't cleaned up centrally.
 
-Customers weren't sure what to put, so it's left off the booking form. In the app, pre-fill it from the category name ("Laptop medium" becomes "Laptop") and let the volunteer correct it. A suggestions list can come from `GET /api/v2/items`.
+For most categories, item type would just repeat the category. So when a ticket syncs, the server sets it to the category name without the size ("Laptop medium" becomes "Laptop") and saves that back to the ticket. Volunteers aren't asked.
+
+Misc items are the exception. "Misc" says nothing about what the item was, so the app and the job sheet only ask for item type (and weight) when the category is Misc powered or Misc unpowered. Switching a ticket to Misc clears the old value so the volunteer types a real one. Sync stops with "Add an item type." if a Misc ticket has none.
+
+It's different from the item name (`subject`), which is whatever the customer typed, for example "Dad's old Roberts radio", and isn't sent to Restarters. Customers aren't asked for item type on the booking form.
 
 ### Deleting and re-syncing creates a new Restarters record
 

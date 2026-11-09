@@ -96,10 +96,13 @@ export default function TicketPrint() {
 
       <section className="print-repair">
         <h2>Repair</h2>
-        <div className="write-row">
-          <WriteIn label="Item type" value={p.repair_item_type} />
-          {needsWeight(p.restarters_category) && <WriteIn label="Rough weight (kg)" value={p.repair_item_weight_kg} />}
-        </div>
+        {/* Only Misc items need these. Other categories fill them in themselves. */}
+        {needsWeight(p.restarters_category) && (
+          <div className="write-row">
+            <WriteIn label="Item type" value={p.repair_item_type} />
+            <WriteIn label="Rough weight (kg)" value={p.repair_item_weight_kg} />
+          </div>
+        )}
 
         <Ticks title="Fixer" options={meta.options.repair_fixer} value={p.repair_fixer} />
 

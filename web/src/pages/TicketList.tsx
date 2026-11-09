@@ -13,7 +13,7 @@ type Completed = { tickets?: Ticket[]; days?: number; error?: string };
 // whose job sheet hasn't been printed, so people who haven't arrived yet.
 // "Repairs" is for fixers: everything checked in, grouped by stage in board
 // order, newest first. The search box filters both as you type.
-// "Include completed" adds recently completed tickets to Repairs, so a wrong
+// "Also search completed" adds recently completed tickets to Repairs, so a wrong
 // outcome can be fixed or notes added.
 export default function TicketList() {
   const [state, setState] = useState<State>({});
@@ -132,7 +132,7 @@ export default function TicketList() {
                 setCompleted((c) => ({ ...c, error: undefined }));
               }}
             />
-            Include completed (last {completed.days ?? 90} days)
+            Also search completed (last {completed.days ?? 90} days)
           </label>
         )}
         {filtering && (

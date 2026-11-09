@@ -25,6 +25,8 @@ export type SyncDeps = {
   restarters: Restarters;
   config: SyncConfig;
   now?: () => Date;
+  // Label for a Restarters category id, e.g. "43" -> "Toaster".
+  categoryLabel?: (value: string) => Promise<string | undefined>;
 };
 
 export type SyncResult =
@@ -34,6 +36,19 @@ export type SyncResult =
 
 // Restarters' two Misc categories (powered, unpowered).
 const MISC_CATEGORIES = ["46", "50"];
+
+// Restarters requires an item type, a short generic name for the item. For
+// most categories that's just the category name without the size ("Laptop
+// medium" -> "Laptop"), so it's filled in here and volunteers aren't asked.
+// Only Misc items need one typed in, since "Misc" says nothing about them.
+export const itemTypeFor = (p: Properties, categoryLabel?: string) => {
+  if (MISC_CATEGORIES.includes(p.restarters_category ?? "")) {
+    return p.repair_item_type?.trim() ?? "";
+  }
+  const fromCategory = (categoryLabel ?? "")
+    .replace(/\s+(small|medium|large)$/i, "").trim();
+  return fromCategory || (p.repair_item_type?.trim() ?? "");
+};
 
 const STATUSES: RepairStatus[] = ["Fixed", "Repairable", "End of life"];
 
@@ -60,11 +75,11 @@ export const toDevice = (
   status: RepairStatus,
   eventId: number,
   eventYear: number,
+  categoryLabel?: string,
 ): DeviceFields => {
   if (!p.restarters_category) throw new SyncProblem("Choose a category.");
-  if (!p.repair_item_type?.trim()) {
-    throw new SyncProblem("Add an item type.");
-  }
+  const itemType = itemTypeFor(p, categoryLabel);
+  if (!itemType) throw new SyncProblem("Add an item type.");
   if (status === "End of life" && !p.repair_barrier) {
     throw new SyncProblem("Choose a barrier to repair.");
   }
@@ -76,7 +91,7 @@ export const toDevice = (
   const fields: Record<string, string | null | undefined> = {
     eventid: String(eventId),
     category: p.restarters_category,
-    item_type: p.repair_item_type,
+    item_type: itemType,
     brand: p.repair_item_brand,
     model: p.repair_item_model,
     age: year > 0 ? String(Math.max(0, eventYear - year)) : undefined,
@@ -133,10 +148,16 @@ export const syncTicket = async (
 
   let deviceId = Number(p.restarters_device_id) || 0;
   let eventId = 0;
+  let itemType = "";
   try {
     const event = await findEvent(deps, p);
     eventId = event.eventId;
-    const fields = toDevice(p, status, eventId, Number(event.date.slice(0, 4)));
+    const label = p.restarters_category ?
+      await deps.categoryLabel?.(p.restarters_category) : undefined;
+    const fields = toDevice(
+      p, status, eventId, Number(event.date.slice(0, 4)), label,
+    );
+    itemType = fields.item_type ?? "";
 
     if (deviceId) {
       try {
@@ -164,6 +185,9 @@ export const syncTicket = async (
       restarters_event_id: String(eventId),
       restarters_sync_status: "Synced",
       restarters_sync_error: "",
+      // Keep HubSpot's copy in step with what Restarters was sent.
+      ...(itemType !== (p.repair_item_type ?? "") ?
+        {repair_item_type: itemType} : {}),
     });
   } catch (err) {
     // The device exists on Restarters but the ticket doesn't know its id.

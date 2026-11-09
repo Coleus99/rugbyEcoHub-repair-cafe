@@ -190,8 +190,41 @@ legend {
   padding: 0 0.25rem;
 }
 
+/* Item (blue-grey) and Repair (green-grey) groups on the ticket form.
+   Tinted so they're easy to tell apart, with white inputs on top. */
+fieldset.group-item,
+fieldset.group-repair {
+  border-width: 2px;
+
+  legend {
+    padding: 0.1rem 0.6rem;
+    border: 2px solid;
+    border-radius: 6px;
+    background: var(--bg);
+  }
+}
+
+fieldset.group-item {
+  background: var(--group-item);
+  border-color: var(--group-item-border);
+
+  legend {
+    border-color: var(--group-item-border);
+  }
+}
+
+fieldset.group-repair {
+  background: var(--group-repair);
+  border-color: var(--group-repair-border);
+
+  legend {
+    border-color: var(--group-repair-border);
+  }
+}
+
 .field {
   display: grid;
+  align-content: start;
   gap: 0.25rem;
   margin-top: 0.75rem;
 
@@ -214,6 +247,8 @@ legend {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 1rem;
+  /* A hint under one field mustn't push its neighbour out of line. */
+  align-items: start;
 }
 
 @media (max-width: 480px) {

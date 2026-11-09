@@ -104,6 +104,24 @@ describe("toDevice", () => {
       .estimate).toBe("2.5");
   });
 
+  it("takes the item type from the category, without the size", () => {
+    const p = repaired({
+      restarters_category: "17", repair_item_type: null,
+    }).properties;
+    expect(toDevice(p, "Fixed", 1, 2026, "Laptop medium").item_type)
+      .toBe("Laptop");
+  });
+
+  it("uses the typed item type for Misc", () => {
+    const p = repaired({
+      restarters_category: "46", repair_item_type: "Sewing machine",
+    }).properties;
+    expect(toDevice(p, "Fixed", 1, 2026, "Misc").item_type)
+      .toBe("Sewing machine");
+    expect(() => toDevice({...p, repair_item_type: ""}, "Fixed", 1, 2026,
+      "Misc")).toThrow("Add an item type.");
+  });
+
   it("asks for what Restarters requires", () => {
     const p = repaired().properties;
     expect(() => toDevice({...p, restarters_category: null}, "Fixed", 1, 2026))
@@ -147,6 +165,18 @@ describe("syncTicket", () => {
     }));
     expect(restarters.latestEventOnOrBefore)
       .toHaveBeenCalledWith("116", "2026-11-21");
+  });
+
+  it("saves the item type it filled in back to HubSpot", async () => {
+    deps.categoryLabel = async () => "Laptop medium";
+    await syncTicket(deps, repaired({
+      restarters_category: "17", repair_item_type: null,
+    }));
+    expect(restarters.createDevice).toHaveBeenCalledWith(
+      expect.objectContaining({item_type: "Laptop"}),
+    );
+    expect(hubspot.updateTicket).toHaveBeenCalledWith("100",
+      expect.objectContaining({repair_item_type: "Laptop"}));
   });
 
   it("updates the existing device on its stored event", async () => {

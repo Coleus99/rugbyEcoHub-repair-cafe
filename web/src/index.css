@@ -7,6 +7,11 @@
   --accent: #1d6b3a;
   --accent-text: #fff;
   --error: #b42318;
+  /* Form group tints, so the sections stand apart at a glance. */
+  --group-item: #eef3f8;
+  --group-item-border: #b9c7d6;
+  --group-repair: #eff6ef;
+  --group-repair-border: #b7cdb9;
 
   font: 16px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
   /* Light only. "only light" also stops a browser's automatic dark mode

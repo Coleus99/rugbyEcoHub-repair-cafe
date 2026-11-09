@@ -98,7 +98,7 @@ export type AppDeps = {
   metaCacheMs?: number;
 };
 
-// How far back "Include completed" looks.
+// How far back "Also search completed" looks.
 export const COMPLETED_DAYS = 90;
 
 /** A 4xx we raise ourselves, with a message for the volunteer. */
@@ -151,6 +151,9 @@ export const createApp = (deps: AppDeps) => {
     hubspot: deps.hubspot(),
     restarters: deps.restarters(),
     config: deps.syncConfig(),
+    categoryLabel: async (value) =>
+      (await getMeta()).options.restarters_category
+        ?.find((o) => o.value === value)?.label,
   });
 
   // First names are a nice-to-have. If the HubSpot key can't read contacts,
