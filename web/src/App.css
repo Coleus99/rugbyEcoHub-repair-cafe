@@ -275,8 +275,19 @@ fieldset.group-repair {
 }
 
 /* Done tab */
-.failed-group h2 {
-  color: var(--error);
+.failed-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--error);
+  border-radius: 8px;
+
+  p {
+    margin: 0;
+  }
 }
 
 .ticket-card .ticket-sync {

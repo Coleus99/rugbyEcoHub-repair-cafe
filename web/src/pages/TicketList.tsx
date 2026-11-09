@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { getCompletedTickets, getMeta, getTickets, type Meta, type Stage, type Ticket } from "../lib/api";
-import { doneCount, doneView, followUpStages } from "../lib/done";
+import { doneView, followUpStages } from "../lib/done";
 import { formatDate } from "../lib/format";
 import { awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
@@ -28,6 +28,7 @@ export default function TicketList() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [completed, setCompleted] = useState<Completed>({});
+  const [onlyFailed, setOnlyFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,10 +89,10 @@ export default function TicketList() {
   const toPrint = matches(tabTickets.toPrint);
   const repairs = matches(tabTickets.repairs);
   // Searching Done covers every day in the last 90, not just the session.
-  const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.followUps), meta.stages, filtering);
+  const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.followUps), meta.stages, filtering, onlyFailed);
   // While searching, every tab shows how many results it has.
   const doneAll = meta && doneView(tabTickets.done, tabTickets.followUps, meta.stages, filtering);
-  const doneTotal = completed.tickets && doneAll ? doneCount(doneAll) : undefined;
+  const doneTotal = completed.tickets && doneAll ? doneAll.items.length : undefined;
 
   return (
     <>
@@ -130,7 +131,7 @@ export default function TicketList() {
       <div className="tabs" role="tablist" aria-label="Which repairs">
         <TabButton current={tab} value="toPrint" onSelect={chooseTab} label="To print" total={tickets && tabTickets.toPrint.length} matches={filtering ? toPrint.length : undefined} />
         <TabButton current={tab} value="repairs" onSelect={chooseTab} label="Repairs" total={tickets && tabTickets.repairs.length} matches={filtering ? repairs.length : undefined} />
-        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" total={doneTotal} matches={filtering && done && completed.tickets ? doneCount(done) : undefined} alert={failedSyncs ? `${failedSyncs} failed` : undefined} />
+        <TabButton current={tab} value="done" onSelect={chooseTab} label="Done" total={doneTotal} matches={filtering && done && completed.tickets ? done.items.length : undefined} alert={failedSyncs ? `${failedSyncs} failed` : undefined} />
       </div>
 
       {error && <p role="alert" className="error">{error}</p>}
@@ -157,32 +158,30 @@ export default function TicketList() {
           {!completed.error && !completed.tickets && <p>Loading…</p>}
           {done && completed.tickets && (
             <>
-              {done.failed.length > 0 && (
-                <section className="failed-group">
-                  <h2>
-                    Sync failed <span className="count">{done.failed.length}</span>
-                  </h2>
-                  <p className="muted">Open each one to see what Restarters needs, fix it and save.</p>
-                  <ul className="ticket-list">
-                    {done.failed.map((t) => (
-                      <TicketCard key={t.id} ticket={t} meta={meta} done />
-                    ))}
-                  </ul>
-                </section>
+              <h2 className="group-title">
+                {filtering ? `Search results, last ${completed.days ?? 90} days` : done.day ? `Latest session, ${formatDate(done.day)}` : "Done"}
+                {!filtering && done.syncable > 0 && <span className="count"> ({done.synced} of {done.syncable} on Restarters)</span>}
+              </h2>
+
+              {done.failed > 0 && (
+                <div className="failed-row">
+                  <p>
+                    <strong className="error">
+                      {done.failed} failed {done.failed === 1 ? "sync" : "syncs"}
+                    </strong>
+                    . Open each to see what Restarters needs, fix it and save.
+                  </p>
+                  <label className="checkbox">
+                    <input type="checkbox" checked={onlyFailed} onChange={(e) => setOnlyFailed(e.target.checked)} />
+                    Show only sync failures
+                  </label>
+                </div>
               )}
 
-              {/* Follow-ups stay here whatever their date until they're
-                  reopened (In Progress) or closed. */}
-              <StageGroups stages={meta.stages.filter((s) => followUp.has(s.id))} tickets={done.followUps} meta={meta} done />
-
-              {done.day && !filtering && (
-                <h2 className="group-title">
-                  Latest session, {formatDate(done.day)} <span className="count">({done.synced} of {done.syncable} on Restarters)</span>
-                </h2>
-              )}
-              {filtering && done.completed.length > 0 && <h2 className="group-title">Completed in the last {completed.days ?? 90} days</h2>}
-              {doneCount(done) === 0 && <p>{filtering ? "Nothing done matches." : "Nothing done yet."}</p>}
-              <StageGroups stages={meta.stages.filter((s) => !s.open)} tickets={done.completed} meta={meta} done />
+              {done.items.length === 0 && <p>{filtering ? "Nothing done matches." : "Nothing done yet."}</p>}
+              {/* Needs follow-up and sync failures are included whatever
+                  their date, until they're reopened, closed or fixed. */}
+              <StageGroups stages={meta.stages.filter((s) => followUp.has(s.id) || !s.open)} tickets={done.items} meta={meta} done />
             </>
           )}
         </div>

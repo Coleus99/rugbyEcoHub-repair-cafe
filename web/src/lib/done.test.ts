@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Stage, Ticket } from "./api";
-import { doneCount, doneView, followUpStages } from "./done";
+import { doneView, followUpStages } from "./done";
 
 const stages: Stage[] = [
   { id: "2", label: "In Progress", open: true, restartersStatus: null },
@@ -32,13 +32,15 @@ describe("followUpStages", () => {
 });
 
 describe("doneView", () => {
-  it("shows the latest session, follow-ups and failures from any day", () => {
+  it("lists the latest session, plus follow-ups and failures from any day", () => {
     const view = doneView(completed, followUps, stages, false);
     expect(view.day).toBe("2026-11-21");
-    expect(ids(view.failed)).toEqual(["8", "5"]);
-    expect(ids(view.followUps)).toEqual(["6"]);
-    expect(ids(view.completed)).toEqual(["1", "2", "3"]);
-    expect(doneCount(view)).toBe(6);
+    expect(ids(view.items)).toEqual(["6", "8", "1", "2", "3", "5"]);
+    expect(view.failed).toBe(2);
+  });
+
+  it("can show only the sync failures", () => {
+    expect(ids(doneView(completed, followUps, stages, false, true).items)).toEqual(["8", "5"]);
   });
 
   it("counts synced items in the session, leaving out stages that don't sync", () => {
@@ -46,8 +48,8 @@ describe("doneView", () => {
     expect([view.synced, view.syncable]).toEqual([2, 2]);
   });
 
-  it("shows every day when searching", () => {
-    expect(doneView(completed, [], stages, true).completed).toHaveLength(4);
+  it("lists every day when searching", () => {
+    expect(doneView(completed, [], stages, true).items).toHaveLength(5);
   });
 
   it("uses the UK day, so a late-evening BST close counts as that day", () => {
@@ -56,6 +58,6 @@ describe("doneView", () => {
   });
 
   it("copes with nothing completed", () => {
-    expect(doneView([], [], stages, false)).toMatchObject({ day: undefined, synced: 0, syncable: 0 });
+    expect(doneView([], [], stages, false)).toMatchObject({ day: undefined, items: [], synced: 0, syncable: 0 });
   });
 });

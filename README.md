@@ -305,7 +305,7 @@ The list has three tabs:
 
 - **To print**, for reception. Tickets at the first stage (New) with no print time. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
 - **Repairs**, for fixers. Everything else that's open, apart from Needs follow-up, grouped by stage. Cards say Reprint rather than Print.
-- **Done**, for items nobody is working on now. In order: sync failures from any day, Needs follow-up items from any day (with their next step), then the latest session's completed items (the most recent day anything was completed) with "8 of 9 on Restarters". There's no date filter. Searching covers everything completed in the last 90 days. Won't repair and No show don't sync, so they aren't counted.
+- **Done**, for items nobody is working on now. One list under "Latest session, Sat 21 Nov (8 of 9 on Restarters)", grouped by stage: Needs follow-up, Repaired, Can't repair and so on. The latest session is the most recent day anything was completed. Needs follow-up items and sync failures are included whatever their date. Failed items stay in their stage group with a "Sync failed" label and the reason. When there are any, a row at the top says "3 failed syncs" with a "Show only sync failures" checkbox. Searching covers everything completed in the last 90 days. Won't repair and No show don't sync, so they aren't counted.
 
 On the ticket page, Status and Fixer are the first row of the Repair group, so a fixer picking an item up sets both together, and the outcome sits right above the repair write-up.
 
