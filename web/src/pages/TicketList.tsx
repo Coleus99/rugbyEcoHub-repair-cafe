@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { getCompletedTickets, getMeta, getTickets, updateTicket, type Meta, type Session, type Stage, type Ticket } from "../lib/api";
-import { doneView, followUpStages, ukDay } from "../lib/done";
+import { doneView, ukDay } from "../lib/done";
 import { formatDate } from "../lib/format";
 import { assignChanges, awaitingPrint, isPrinted, isReturning, printGroups, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
-import { bookingLabel, comesBack, labelFor } from "../lib/ticketForm";
+import { bookingLabel, labelFor } from "../lib/ticketForm";
 
 type State = { meta?: Meta; tickets?: Ticket[]; failedSyncs?: number; error?: string };
 type Completed = { tickets?: Ticket[]; days?: number; session?: Session | null; error?: string };
@@ -15,8 +15,8 @@ type Completed = { tickets?: Ticket[]; days?: number; session?: Session | null; 
 //   printed, so people who haven't arrived yet.
 // - Repairs, for fixers: everything checked in, grouped by stage in board
 //   order, newest first.
-// - Done: sync failures and Needs follow-up items from any day, then the
-//   latest session's completed items and whether each reached Restarters.
+// - Done: the latest session's completed items, plus sync errors from any
+//   day, and whether each reached Restarters.
 //   Searching it covers the last 90 days, to fix a wrong outcome or add
 //   notes afterwards.
 // The search box above the tabs searches all three. Each tab shows its
@@ -74,13 +74,12 @@ export default function TicketList() {
   const firstStage = meta?.stages[0]?.id;
   const open = tickets ?? [];
   // Needs follow-up items are finished with for now, so they're on Done.
-  const followUp = followUpStages(meta?.stages ?? []);
-  const isFollowUp = (t: Ticket) => followUp.has(t.properties.hs_pipeline_stage ?? "");
   const groups = printGroups(open, meta?.stages ?? [], ukDay(new Date().toISOString()));
   const tabTickets = {
-    toPrint: [...groups.today, ...groups.upcoming, ...groups.unbooked],
-    repairs: open.filter((t) => !awaitingPrint(t, firstStage) && !isFollowUp(t)),
-    followUps: open.filter(isFollowUp),
+    toPrint: [...groups.today, ...groups.upcoming],
+    // Returning items wait on To print. Other Needs follow-up items
+    // (Professional help, Do it yourself) stay here.
+    repairs: open.filter((t) => !awaitingPrint(t, firstStage) && !isReturning(t, meta?.stages ?? [])),
     done: completed.tickets ?? [],
   };
 
@@ -92,12 +91,11 @@ export default function TicketList() {
   const toPrint = matches(tabTickets.toPrint);
   const printToday = matches(groups.today);
   const printUpcoming = matches(groups.upcoming);
-  const printUnbooked = matches(groups.unbooked);
   const repairs = matches(tabTickets.repairs);
   // Searching Done covers every day in the last 90, not just the session.
-  const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.followUps), meta.stages, { sessionDay: completed.session?.date, allDays: filtering, onlyFailed });
+  const done = meta && doneView(matches(tabTickets.done), meta.stages, { sessionDay: completed.session?.date, allDays: filtering, onlyFailed });
   // While searching, every tab shows how many results it has.
-  const doneAll = meta && doneView(tabTickets.done, tabTickets.followUps, meta.stages, { sessionDay: completed.session?.date, allDays: filtering });
+  const doneAll = meta && doneView(tabTickets.done, meta.stages, { sessionDay: completed.session?.date, allDays: filtering });
   const doneTotal = completed.tickets && doneAll ? doneAll.items.length : undefined;
 
   return (
@@ -147,9 +145,8 @@ export default function TicketList() {
         <div role="tabpanel" aria-label="To print">
           <p className="muted">Print a job sheet when someone arrives. It then moves to Repairs. For a returning item, assign a fixer instead. Anything left under Today at the end of the session is a no-show.</p>
           {toPrint.length === 0 && <p>{filtering ? "No bookings to print match." : "Nothing to print."}</p>}
-          <PrintGroup title="Today" tickets={printToday} meta={meta} onAssign={replaceTicket} />
-          <PrintGroup title="Upcoming sessions" tickets={printUpcoming} meta={meta} onAssign={replaceTicket} />
-          <PrintGroup title="More time needed, not booked" hint="Coming back, but no session chosen. Open one to book it in." tickets={printUnbooked} meta={meta} onAssign={replaceTicket} />
+          <PrintGroup title="Today" tickets={printToday} meta={meta} />
+          <PrintGroup title="Upcoming sessions" tickets={printUpcoming} meta={meta} />
         </div>
       )}
 
@@ -189,7 +186,7 @@ export default function TicketList() {
               {done.items.length === 0 && <p>{filtering ? "Nothing done matches." : "Nothing done yet."}</p>}
               {/* Needs follow-up and sync failures are included whatever
                   their date, until they're reopened, closed or fixed. */}
-              <StageGroups stages={meta.stages.filter((s) => followUp.has(s.id) || !s.open)} tickets={done.items} meta={meta} done />
+              <StageGroups stages={meta.stages.filter((s) => !s.open)} tickets={done.items} meta={meta} done />
             </>
           )}
         </div>
@@ -210,19 +207,18 @@ function TabButton({ current, value, onSelect, label, total, matches, alert }: {
   );
 }
 
-// A To print group. Returning items get the fixer dropdown (assigning moves
-// them to In Progress). New bookings just get Print.
-function PrintGroup({ title, hint, tickets, meta, onAssign }: { title: string; hint?: string; tickets: Ticket[]; meta: Meta; onAssign: (t: Ticket) => void }) {
+// A To print group. Printing (or reprinting a returning item) checks it in
+// and moves it to Repairs.
+function PrintGroup({ title, tickets, meta }: { title: string; tickets: Ticket[]; meta: Meta }) {
   if (tickets.length === 0) return null;
   return (
     <section>
       <h2>
         {title} <span className="count">({tickets.length})</span>
       </h2>
-      {hint && <p className="muted">{hint}</p>}
       <ul className="ticket-list">
         {tickets.map((t) => (
-          <TicketCard key={t.id} ticket={t} meta={meta} onAssign={isReturning(t, meta.stages) ? onAssign : undefined} />
+          <TicketCard key={t.id} ticket={t} meta={meta} />
         ))}
       </ul>
     </section>
@@ -257,11 +253,11 @@ function TicketCard({ ticket, meta, done, onAssign }: { ticket: Ticket; meta: Me
   const makeModel = [p.repair_item_brand, p.repair_item_model].filter(Boolean).join(" ");
   const category = labelFor(meta.options.restarters_category, p.restarters_category);
   // Completed tickets show when they were completed rather than booked.
-  // Follow-ups on Done only show a date if they're coming back.
-  const followUpDate = comesBack(p.repair_next_steps) && p.requested_repair_date ? `Back on ${formatDate(p.requested_repair_date)}` : "";
-  const when = p.closed_date ? `Completed ${formatDate(p.closed_date)}` : done ? followUpDate : bookingLabel(p);
-  // Follow-ups on Done also say what's next, e.g. "More time needed".
-  const nextStep = done && p.closed_date === null && labelFor(meta.options.repair_next_steps, p.repair_next_steps);
+  // Returning items show the session they're due back at, or TBC.
+  const returning = isReturning(ticket, meta.stages);
+  const when = p.closed_date ? `Completed ${formatDate(p.closed_date)}` : returning ? `Back on ${p.requested_repair_date ? formatDate(p.requested_repair_date) : "TBC"}` : bookingLabel(p);
+  // Needs follow-up items also say what's next, e.g. "Professional help".
+  const nextStep = p.closed_date === null && labelFor(meta.options.repair_next_steps, p.repair_next_steps);
   const details = [ticket.firstName, category, !onAssign && p.repair_fixer && `Fixer ${p.repair_fixer}`, nextStep && `Next: ${nextStep}`, when].filter(Boolean);
   const syncs = !!meta.stages.find((s) => s.id === p.hs_pipeline_stage)?.restartersStatus;
 
@@ -271,7 +267,7 @@ function TicketCard({ ticket, meta, done, onAssign }: { ticket: Ticket; meta: Me
         <span className="ref">#{shortRef(ticket.id)}</span> <strong>{p.subject || "(no name)"}</strong>
         {makeModel && <span> · {makeModel}</span>}
         {p.restarters_sync_status === "Error" && <span className="badge error"> Sync error</span>}
-        {!done && isReturning(ticket, meta.stages) && <span className="badge"> Returning</span>}
+        {returning && <span className="badge"> Returning</span>}
         <div className="muted">{details.join(" · ")}</div>
         {done && p.restarters_sync_status === "Error" && <div className="error">{p.restarters_sync_error}</div>}
         {!done && p.content && <div className="issue">{p.content}</div>}

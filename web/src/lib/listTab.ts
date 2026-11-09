@@ -39,17 +39,15 @@ export function rememberTab(tab: ListTab): void {
 
 // Assigning a fixer from the Repairs list. An item still at the first
 // stage (New) moves on to In Progress at the same time, since someone is
-// now working on it, as does a returning Needs follow-up item. Unassigning
-// (fixer "") moves an In Progress item back to New. Other stages are left
-// as they are.
+// now working on it. Unassigning (fixer "") moves an In Progress item back
+// to New. Other stages are left as they are.
 export function assignChanges(ticket: Ticket, fixer: string, stages: Stage[]): Record<string, string> {
   const changes: Record<string, string> = { repair_fixer: fixer };
   const open = stages.filter((s) => s.open);
   const inProgress = open.find((s) => /in progress/i.test(s.label)) ?? open[1];
   const stage = ticket.properties.hs_pipeline_stage;
   const first = stages[0]?.id;
-  const followUp = stages.some((s) => s.id === stage && s.open && s.restartersStatus);
-  if (fixer && inProgress && (stage === first || followUp)) changes.hs_pipeline_stage = inProgress.id;
+  if (fixer && inProgress && stage === first) changes.hs_pipeline_stage = inProgress.id;
   if (!fixer && first && inProgress && stage === inProgress.id) changes.hs_pipeline_stage = first;
   return changes;
 }
@@ -58,19 +56,26 @@ export function assignChanges(ticket: Ticket, fixer: string, stages: Stage[]): R
 export const isReturning = (ticket: Ticket, stages: Stage[]) =>
   comesBack(ticket.properties.repair_next_steps) && stages.some((s) => s.id === ticket.properties.hs_pipeline_stage && s.open && s.restartersStatus);
 
+// Reprinting a returning item's sheet checks it back in: back to New with
+// no fixer, so it shows on Repairs to be assigned like any new arrival.
+export const checkInChanges = (stages: Stage[]): Record<string, string> => ({ hs_pipeline_stage: stages[0]?.id ?? "", repair_fixer: "" });
+
 // The To print tab's groups. Today: new bookings for today or earlier, or
 // with no date (in person), plus returning items booked for today or
 // earlier. Upcoming: anything booked for a later session, so someone who
-// turns up early is still found. Unbooked: returning items with no session.
+// turns up early is still found, then returning items with no date (TBC).
 export function printGroups(open: Ticket[], stages: Stage[], today: string) {
   const first = stages[0]?.id;
   const due = (t: Ticket) => !t.properties.requested_repair_date || t.properties.requested_repair_date <= today;
   const awaiting = open.filter((t) => awaitingPrint(t, first));
   const returning = open.filter((t) => isReturning(t, stages));
   const booked = returning.filter((t) => t.properties.requested_repair_date);
+  const tbc = returning.filter((t) => !t.properties.requested_repair_date);
   return {
     today: [...awaiting.filter(due), ...booked.filter(due)],
-    upcoming: [...awaiting, ...booked].filter((t) => !due(t)).sort((a, b) => (a.properties.requested_repair_date ?? "").localeCompare(b.properties.requested_repair_date ?? "")),
-    unbooked: returning.filter((t) => !t.properties.requested_repair_date),
+    upcoming: [
+      ...[...awaiting, ...booked].filter((t) => !due(t)).sort((a, b) => (a.properties.requested_repair_date ?? "").localeCompare(b.properties.requested_repair_date ?? "")),
+      ...tbc,
+    ],
   };
 }

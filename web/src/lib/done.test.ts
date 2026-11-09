@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Stage, Ticket } from "./api";
-import { doneView, followUpStages } from "./done";
+import { doneView } from "./done";
 
 const stages: Stage[] = [
   { id: "2", label: "In Progress", open: true, restartersStatus: null },
@@ -22,49 +22,42 @@ const completed = [
   t("4", "2026-11-07T11:00:00Z", "3", "Synced"),
   t("5", "2026-11-07T11:30:00Z", "3", "Error"),
 ];
-const followUps = [t("6", null, "6", "Synced"), t("8", null, "6", "Error")];
 const ids = (list: Ticket[]) => list.map((x) => x.id);
 
-describe("followUpStages", () => {
-  it("is the open stages that sync", () => {
-    expect([...followUpStages(stages)]).toEqual(["6"]);
-  });
-});
-
 describe("doneView", () => {
-  it("lists the latest session, plus follow-ups and failures from any day", () => {
-    const view = doneView(completed, followUps, stages);
+  it("lists the latest session, plus failures from any day", () => {
+    const view = doneView(completed, stages);
     expect(view.day).toBe("2026-11-21");
-    expect(ids(view.items)).toEqual(["6", "8", "1", "2", "3", "5"]);
-    expect(view.failed).toBe(2);
+    expect(ids(view.items)).toEqual(["1", "2", "3", "5"]);
+    expect(view.failed).toBe(1);
   });
 
   it("can show only the sync failures", () => {
-    expect(ids(doneView(completed, followUps, stages, { onlyFailed: true }).items)).toEqual(["8", "5"]);
+    expect(ids(doneView(completed, stages, { onlyFailed: true }).items)).toEqual(["5"]);
   });
 
   it("counts synced items in the session, leaving out stages that don't sync", () => {
-    const view = doneView(completed, followUps, stages);
+    const view = doneView(completed, stages);
     expect([view.synced, view.syncable]).toEqual([2, 2]);
   });
 
   it("lists every day when searching", () => {
-    expect(doneView(completed, [], stages, { allDays: true }).items).toHaveLength(5);
+    expect(doneView(completed, stages, { allDays: true }).items).toHaveLength(5);
   });
 
   it("uses the UK day, so a late-evening BST close counts as that day", () => {
-    const view = doneView([t("9", "2026-07-04T23:30:00Z", "3", "Synced")], [], stages);
+    const view = doneView([t("9", "2026-07-04T23:30:00Z", "3", "Synced")], stages);
     expect(view.day).toBe("2026-07-05");
   });
 
   it("uses the Restarters session date, counting anything closed since", () => {
-    const view = doneView([...completed, t("10", "2026-11-23T09:00:00Z", "3", "Synced")], [], stages, { sessionDay: "2026-11-21" });
+    const view = doneView([...completed, t("10", "2026-11-23T09:00:00Z", "3", "Synced")], stages, { sessionDay: "2026-11-21" });
     expect(view.day).toBe("2026-11-21");
     expect(ids(view.items)).toEqual(["1", "2", "3", "5", "10"]);
     expect([view.synced, view.syncable]).toEqual([3, 3]);
   });
 
   it("copes with nothing completed", () => {
-    expect(doneView([], [], stages)).toMatchObject({ day: undefined, items: [], synced: 0, syncable: 0 });
+    expect(doneView([], stages)).toMatchObject({ day: undefined, items: [], synced: 0, syncable: 0 });
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignChanges, awaitingPrint, isPrinted, printGroups } from "./listTab";
+import { assignChanges, awaitingPrint, checkInChanges, isPrinted, printGroups } from "./listTab";
 
 const ticket = (repair_printed_at: string | null, hs_pipeline_stage = "1") => ({
   id: "1",
@@ -35,10 +35,6 @@ describe("assignChanges", () => {
 
   it("moves a new item to In Progress", () => {
     expect(assignChanges(ticket(null, "1"), "Paul F", stages)).toEqual({ repair_fixer: "Paul F", hs_pipeline_stage: "2" });
-  });
-
-  it("moves a returning follow-up to In Progress", () => {
-    expect(assignChanges(ticket(null, "6"), "Irene M", stages)).toEqual({ repair_fixer: "Irene M", hs_pipeline_stage: "2" });
   });
 
   it("moves an In Progress item back to New when unassigned", () => {
@@ -77,10 +73,16 @@ describe("printGroups", () => {
     t("working", "2", "2026-11-21"),
   ];
 
-  it("splits bookings into today, upcoming and returning-but-unbooked", () => {
+  it("splits bookings into today and upcoming, with undated returns last", () => {
     const groups = printGroups(tickets, stages, today);
     expect(ids(groups.today)).toEqual(["walk-in", "today", "missed", "back-today"]);
-    expect(ids(groups.upcoming)).toEqual(["soon", "back-later", "later"]);
-    expect(ids(groups.unbooked)).toEqual(["back-unbooked"]);
+    expect(ids(groups.upcoming)).toEqual(["soon", "back-later", "later", "back-unbooked"]);
+  });
+});
+
+describe("checkInChanges", () => {
+  it("puts a returning item back at New with no fixer", () => {
+    const stages = [{ id: "1", label: "New", open: true, restartersStatus: null }];
+    expect(checkInChanges(stages)).toEqual({ hs_pipeline_stage: "1", repair_fixer: "" });
   });
 });

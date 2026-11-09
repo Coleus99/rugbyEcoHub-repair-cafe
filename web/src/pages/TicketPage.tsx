@@ -187,12 +187,11 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
           {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did. Shared publicly on Restarters, so don't include names.")}
           {select("repair_spare_parts", "Spare parts", meta.options.repair_spare_parts ?? [])}
           {show.nextSteps && select("repair_next_steps", "Next steps", meta.options.repair_next_steps ?? [])}
-          {/* Required when there's a session to pick, so returning items
-              are booked in. With none on Restarters yet, it can be left
-              and shows under "More time needed, not booked" on To print. */}
+          {/* Optional: left blank, it shows as "Back on TBC" under Upcoming
+              sessions on To print. */}
           {show.nextSteps && comesBack(draft.repair_next_steps) && (
-            <Field label="Back on" hint={sessions.length ? "The session they'll bring it back to. They'll show under To print for that day." : "No upcoming sessions on Restarters yet. Add them there to book one."}>
-              <Select value={draft.requested_repair_date} options={sessions.map((s) => ({ value: s.date, label: formatDate(s.date) }))} onChange={(v) => set("requested_repair_date", v)} required={sessions.length > 0} />
+            <Field label="Back on" hint={sessions.length ? "The session they'll bring it back to, if known. Shows on To print." : "No upcoming sessions on Restarters yet. Leave as TBC or add them there."}>
+              <Select value={draft.requested_repair_date} options={sessions.map((s) => ({ value: s.date, label: formatDate(s.date) }))} onChange={(v) => set("requested_repair_date", v)} placeholder="TBC" />
             </Field>
           )}
           {show.barrier && select("repair_barrier", "Barrier to repair", meta.options.repair_barrier ?? [])}
@@ -302,11 +301,11 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function Select(props: { value: string; options: Option[]; onChange: (value: string) => void; required?: boolean }) {
+function Select(props: { value: string; options: Option[]; onChange: (value: string) => void; required?: boolean; placeholder?: string }) {
   const known = props.options.some((o) => o.value === props.value);
   return (
     <select value={props.value} onChange={(e) => props.onChange(e.target.value)} required={props.required}>
-      <option value="">Choose…</option>
+      <option value="">{props.placeholder ?? "Choose…"}</option>
       {/* Keep a value HubSpot has that's no longer an option, so it isn't lost on save. */}
       {props.value && !known && <option value={props.value}>{props.value}</option>}
       {props.options.map((o) => (

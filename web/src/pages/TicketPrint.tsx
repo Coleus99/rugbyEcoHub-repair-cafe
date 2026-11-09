@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { QRCodeSVG } from "qrcode.react";
-import { getMeta, getTicket, markPrinted, type Meta, type Option, type Ticket } from "../lib/api";
+import { getMeta, getTicket, markPrinted, updateTicket, type Meta, type Option, type Ticket } from "../lib/api";
 import { labelFor, needsWeight } from "../lib/ticketForm";
+import { checkInChanges, isReturning } from "../lib/listTab";
 import { shortRef } from "../lib/search";
 import { formatDate, formatDateTime } from "../lib/format";
 
-type State = { meta?: Meta; ticket?: Ticket; error?: string; printError?: string };
+type State = { meta?: Meta; ticket?: Ticket; error?: string; printError?: string; checkedIn?: boolean };
 
 // Stages that aren't an outcome a fixer would tick on paper.
 const NOT_OUTCOMES = /^(new|in progress|no show)$/i;
@@ -16,7 +17,8 @@ const NOT_OUTCOMES = /^(new|in progress|no show)$/i;
 // it can be typed in afterwards.
 //
 // The first print marks the ticket as printed, which moves it from the
-// list's "To print" tab to "Repairs". Browsers fire afterprint when the print
+// list's "To print" tab to "Repairs". Reprinting a returning (More time
+// needed) item checks it back in: back to New with no fixer, on Repairs. Browsers fire afterprint when the print
 // dialog closes, whether it was opened with the button or with Ctrl/Cmd+P.
 export default function TicketPrint() {
   const { id = "" } = useParams();
@@ -34,20 +36,30 @@ export default function TicketPrint() {
   }, [id]);
 
   const printed = !!state.ticket?.properties.repair_printed_at;
+  // A returning (More time needed) item being reprinted is checking back in.
+  const returning = !!state.ticket && !!state.meta && isReturning(state.ticket, state.meta.stages);
   useEffect(() => {
-    if (!state.ticket || printed) return;
+    if (!state.ticket || !state.meta || (printed && !returning)) return;
     const ticketId = state.ticket.id;
-    const onAfterPrint = () =>
-      markPrinted(ticketId).then(
-        ({ printedAt }) =>
-          setState((s) => !s.ticket ? s : { ...s, printError: undefined, ticket: { ...s.ticket, properties: { ...s.ticket.properties, repair_printed_at: printedAt } } }),
-        (err: Error) => setState((s) => ({ ...s, printError: `Printed, but couldn't mark it as printed: ${err.message}` })),
-      );
+    const stages = state.meta.stages;
+    const onAfterPrint = async () => {
+      try {
+        if (returning) {
+          const { ticket } = await updateTicket(ticketId, checkInChanges(stages));
+          setState((s) => ({ ...s, ticket, printError: undefined, checkedIn: true }));
+        } else {
+          const { printedAt } = await markPrinted(ticketId);
+          setState((s) => (!s.ticket ? s : { ...s, printError: undefined, ticket: { ...s.ticket, properties: { ...s.ticket.properties, repair_printed_at: printedAt } } }));
+        }
+      } catch (err) {
+        setState((s) => ({ ...s, printError: `Printed, but couldn't check it in: ${(err as Error).message}` }));
+      }
+    };
     window.addEventListener("afterprint", onAfterPrint, { once: true });
     return () => window.removeEventListener("afterprint", onAfterPrint);
-  }, [state.ticket, printed]);
+  }, [state.ticket, state.meta, printed, returning]);
 
-  const { meta, ticket, error, printError } = state;
+  const { meta, ticket, error, printError, checkedIn } = state;
   if (error) return <p role="alert" className="error">{error}</p>;
   if (!meta || !ticket) return <p>Loading…</p>;
 
@@ -63,7 +75,7 @@ export default function TicketPrint() {
         <span>
           <Link to="/">Back to list</Link> · <Link to={`/tickets/${ticket.id}`}>Ticket</Link>
         </span>
-        {printed && <span role="status">Printed {formatDateTime(p.repair_printed_at)}</span>}
+        {checkedIn ? <span role="status">Checked back in. It's on Repairs, ready to assign a fixer.</span> : printed && <span role="status">Printed {formatDateTime(p.repair_printed_at)}</span>}
         <button type="button" onClick={() => window.print()}>
           {printed ? "Reprint" : "Print"}
         </button>
