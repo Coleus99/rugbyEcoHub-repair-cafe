@@ -36,6 +36,10 @@ describe("assignChanges", () => {
     expect(assignChanges(ticket(null, "1"), "Paul F", stages)).toEqual({ repair_fixer: "Paul F", hs_pipeline_stage: "2" });
   });
 
+  it("moves an In Progress item back to New when unassigned", () => {
+    expect(assignChanges(ticket(null, "2"), "", stages)).toEqual({ repair_fixer: "", hs_pipeline_stage: "1" });
+  });
+
   it("only changes the fixer once it's past New", () => {
     expect(assignChanges(ticket(null, "2"), "Pete N", stages)).toEqual({ repair_fixer: "Pete N" });
   });

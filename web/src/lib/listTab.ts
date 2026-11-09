@@ -38,13 +38,15 @@ export function rememberTab(tab: ListTab): void {
 
 // Assigning a fixer from the Repairs list. An item still at the first
 // stage (New) moves on to In Progress at the same time, since someone is
-// now working on it. Later stages are left as they are.
+// now working on it. Unassigning (fixer "") moves an In Progress item back
+// to New. Other stages are left as they are.
 export function assignChanges(ticket: Ticket, fixer: string, stages: { id: string; label: string; open: boolean }[]): Record<string, string> {
   const changes: Record<string, string> = { repair_fixer: fixer };
   const open = stages.filter((s) => s.open);
   const inProgress = open.find((s) => /in progress/i.test(s.label)) ?? open[1];
-  if (fixer && inProgress && ticket.properties.hs_pipeline_stage === stages[0]?.id) {
-    changes.hs_pipeline_stage = inProgress.id;
-  }
+  const stage = ticket.properties.hs_pipeline_stage;
+  const first = stages[0]?.id;
+  if (fixer && inProgress && stage === first) changes.hs_pipeline_stage = inProgress.id;
+  if (!fixer && first && inProgress && stage === inProgress.id) changes.hs_pipeline_stage = first;
   return changes;
 }

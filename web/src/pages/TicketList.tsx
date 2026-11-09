@@ -270,7 +270,8 @@ function TicketCard({ ticket, meta, done, onAssign }: { ticket: Ticket; meta: Me
 }
 
 // Quick fixer assignment for the host. Saves as soon as a name is picked.
-// A new item moves to In Progress at the same time.
+// A new item moves to In Progress at the same time, and choosing
+// Unassigned moves an In Progress item back to New.
 function AssignFixer({ ticket, meta, onSaved }: { ticket: Ticket; meta: Meta; onSaved: (t: Ticket) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -292,7 +293,7 @@ function AssignFixer({ ticket, meta, onSaved }: { ticket: Ticket; meta: Meta; on
   return (
     <>
       <select aria-label={`Fixer for ${ticket.properties.subject ?? "item"}`} className="assign-fixer" value={fixer} disabled={busy} onChange={(e) => assign(e.target.value)}>
-        <option value="">{fixer ? "No fixer" : "Assign fixer"}</option>
+        <option value="">{fixer ? "Unassigned" : "Assign fixer"}</option>
         {(meta.options.repair_fixer ?? []).map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
