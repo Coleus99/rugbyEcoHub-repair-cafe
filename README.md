@@ -140,7 +140,7 @@ Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
 5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`.
 6. **Config.** Create `functions/.env.repair-cafe-prod` with `HUBSPOT_PIPELINE_ID`, `RESTARTERS_STAGE_STATUS` and `ALLOWED_EMAILS` using the live stage ids. Leave out `RESTARTERS_EVENT_ID` so items go on the real session. The live ids can be read with Bruno's pipeline request once the live key is in `api/.env`.
-7. **Deploy:** `npm --prefix web run build && firebase deploy --project prod`.
+7. **Deploy:** `npm run deploy:prod`.
 8. **Check:** sign in, open a real ticket, print it, scan the QR code on a phone, then sync one item and check it appears on that session's Restarters event.
 
 ## Local development
@@ -194,7 +194,17 @@ This writes to live Restarters, on the 7 November test event (19168). Remove the
 Deploy to dev:
 
 ```bash
-npm --prefix web run build && firebase deploy --project dev
+npm run deploy:dev
+```
+
+This builds the web app with the dev Firebase settings (`web/.env.development`) and deploys to `repair-cafe-dev`. A plain `npm --prefix web run build` uses the prod settings, so don't deploy that to dev. `npm run deploy:prod` does the same for prod.
+
+If the functions deploy fails with "missing permission on the build service account", the project's default compute service account needs the Cloud Build role. New Google Cloud projects no longer give it one automatically. Run this once per project (the number is the project number, shown in the error's link and in Firebase project settings):
+
+```bash
+gcloud projects add-iam-policy-binding repair-cafe-dev \
+  --member=serviceAccount:752138277359-compute@developer.gserviceaccount.com \
+  --role=roles/cloudbuild.builds.builder
 ```
 
 ### Layout
