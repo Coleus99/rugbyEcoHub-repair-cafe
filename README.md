@@ -149,8 +149,13 @@ Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 You need Node 24 (the functions runtime) and the Firebase CLI. If you also use the CLI with another Google account, run `firebase login:use <rugby eco hub email>` in this folder.
 
 ```bash
-npm --prefix web install && npm --prefix functions install
+npm run setup   # first time, or after pulling new dependencies
+npm run dev
+```
 
+`npm run dev` builds the functions, then runs the three processes below in one terminal, each labelled and coloured (functions, emulators, web). The web app is at http://localhost:5173. Ctrl+C stops all three, and the emulators save their data on the way out. If you'd rather have them in separate terminals:
+
+```bash
 # Terminal 1: rebuild functions on save
 npm --prefix functions run build:watch
 
