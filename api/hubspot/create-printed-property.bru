@@ -1,0 +1,30 @@
+meta {
+  name: Create printed property
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{hubspotBase}}/crm/v3/properties/tickets/batch/create
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "inputs": [
+      {
+        "name": "repair_printed_at",
+        "label": "Repair Job Sheet Printed",
+        "type": "datetime",
+        "fieldType": "date",
+        "groupName": "repair_cafe_info",
+        "description": "When the job sheet was first printed. Sheets are printed at reception when the visitor arrives, so this is also their check-in time. Set by the app."
+      }
+    ]
+  }
+}
+
+docs {
+  Run once per portal (sandbox done 9 November 2026, live still to do).
+}

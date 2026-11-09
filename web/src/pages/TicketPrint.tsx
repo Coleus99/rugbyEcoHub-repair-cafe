@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { QRCodeSVG } from "qrcode.react";
-import { getMeta, getTicket, type Meta, type Option, type Ticket } from "../lib/api";
+import { getMeta, getTicket, markPrinted, type Meta, type Option, type Ticket } from "../lib/api";
 import { labelFor, needsWeight } from "../lib/ticketForm";
 import { shortRef } from "../lib/search";
-import { formatDate } from "../lib/format";
+import { formatDate, formatDateTime } from "../lib/format";
 
-type State = { meta?: Meta; ticket?: Ticket; error?: string };
+type State = { meta?: Meta; ticket?: Ticket; error?: string; printError?: string };
 
 // Stages that aren't an outcome a fixer would tick on paper.
 const NOT_OUTCOMES = /^(new|in progress|no show)$/i;
@@ -14,6 +14,10 @@ const NOT_OUTCOMES = /^(new|in progress|no show)$/i;
 // A4 job sheet. Booking details at the top, then space for the fixer to
 // write the repair up by hand. The QR code opens the ticket in the app so
 // it can be typed in afterwards.
+//
+// The first print marks the ticket as printed, which moves it from the
+// list's "To print" tab to "Repairs". Browsers fire afterprint when the print
+// dialog closes, whether it was opened with the button or with Ctrl/Cmd+P.
 export default function TicketPrint() {
   const { id = "" } = useParams();
   const [state, setState] = useState<State>({});
@@ -29,7 +33,21 @@ export default function TicketPrint() {
     };
   }, [id]);
 
-  const { meta, ticket, error } = state;
+  const printed = !!state.ticket?.properties.repair_printed_at;
+  useEffect(() => {
+    if (!state.ticket || printed) return;
+    const ticketId = state.ticket.id;
+    const onAfterPrint = () =>
+      markPrinted(ticketId).then(
+        ({ printedAt }) =>
+          setState((s) => !s.ticket ? s : { ...s, printError: undefined, ticket: { ...s.ticket, properties: { ...s.ticket.properties, repair_printed_at: printedAt } } }),
+        (err: Error) => setState((s) => ({ ...s, printError: `Printed, but couldn't mark it as printed: ${err.message}` })),
+      );
+    window.addEventListener("afterprint", onAfterPrint, { once: true });
+    return () => window.removeEventListener("afterprint", onAfterPrint);
+  }, [state.ticket, printed]);
+
+  const { meta, ticket, error, printError } = state;
   if (error) return <p role="alert" className="error">{error}</p>;
   if (!meta || !ticket) return <p>Loading…</p>;
 
@@ -42,11 +60,15 @@ export default function TicketPrint() {
   return (
     <div className="print-page">
       <div className="print-controls">
-        <Link to={`/tickets/${ticket.id}`}>Back to ticket</Link>
+        <span>
+          <Link to="/">Back to list</Link> · <Link to={`/tickets/${ticket.id}`}>Ticket</Link>
+        </span>
+        {printed && <span role="status">Printed {formatDateTime(p.repair_printed_at)}</span>}
         <button type="button" onClick={() => window.print()}>
-          Print
+          {printed ? "Reprint" : "Print"}
         </button>
       </div>
+      {printError && <p role="alert" className="error print-controls">{printError}</p>}
 
       <header className="print-header">
         <div>

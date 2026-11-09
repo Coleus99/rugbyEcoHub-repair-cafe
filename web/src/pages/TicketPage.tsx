@@ -142,7 +142,7 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
         </nav>
         <div className="page-title">
           <h1>{p.subject || "Ticket"}</h1>
-          <Link to={`/tickets/${ticket.id}/print`}>Print</Link>
+          <Link to={`/tickets/${ticket.id}/print`}>{p.repair_printed_at ? "Reprint" : "Print"}</Link>
         </div>
         <p className="muted">
           {ticket.firstName && `${ticket.firstName} · `}

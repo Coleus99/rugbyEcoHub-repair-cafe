@@ -10,3 +10,13 @@ export function formatDate(value: string | null): string {
     .toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
     .replace(",", "");
 }
+
+// "Sat 21 Nov 10:05", in UK time.
+export function formatDateTime(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date
+    .toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })
+    .replace(/,/g, "");
+}

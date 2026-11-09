@@ -42,6 +42,7 @@ export const READ_PROPERTIES = [
   "repair_barrier",
   "repair_fixer",
   "repair_fixers",
+  "repair_printed_at",
   "restarters_device_id",
   "restarters_event_id",
   "restarters_sync_status",
@@ -260,6 +261,20 @@ export const createApp = (deps: AppDeps) => {
     const sync = await syncTicket(syncDeps(), ticket);
     if (sync.status !== "Skipped") ticket = await getRepairTicket(deps, id);
     res.json({...(await withName(ticket)), sync});
+  });
+
+  // Record the first time the job sheet is printed. Sheets are printed at
+  // reception when the visitor arrives, so this is also their check-in.
+  // Reprints keep the first time. Doesn't sync to Restarters.
+  app.post("/api/tickets/:id/printed", async (req, res) => {
+    const id = req.params.id as string;
+    const ticket = await getRepairTicket(deps, id);
+    let printedAt = ticket.properties.repair_printed_at;
+    if (!printedAt) {
+      printedAt = new Date().toISOString();
+      await deps.hubspot().updateTicket(id, {repair_printed_at: printedAt});
+    }
+    res.json({printedAt});
   });
 
   // Sync one ticket now, e.g. after fixing the cause of an error.

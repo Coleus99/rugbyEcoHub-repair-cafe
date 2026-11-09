@@ -375,6 +375,36 @@ describe("Restarters sync", () => {
   });
 });
 
+describe("POST /api/tickets/:id/printed", () => {
+  it("records the first print", async () => {
+    hubspot.getTicket.mockResolvedValue(
+      ticket(TICKET.id, {repair_printed_at: null}),
+    );
+    const res = await post(`/api/tickets/${TICKET.id}/printed`);
+    expect(res.status).toBe(200);
+    expect(hubspot.updateTicket).toHaveBeenCalledWith(TICKET.id, {
+      repair_printed_at: res.body.printedAt,
+    });
+    expect(restarters.createDevice).not.toHaveBeenCalled();
+  });
+
+  it("keeps the first print time on a reprint", async () => {
+    hubspot.getTicket.mockResolvedValue(
+      ticket(TICKET.id, {repair_printed_at: "2026-11-21T10:05:00Z"}),
+    );
+    const res = await post(`/api/tickets/${TICKET.id}/printed`);
+    expect(res.body).toEqual({printedAt: "2026-11-21T10:05:00Z"});
+    expect(hubspot.updateTicket).not.toHaveBeenCalled();
+  });
+
+  it("won't mark a ticket in another pipeline", async () => {
+    hubspot.getTicket.mockResolvedValue(ticket("9", {hs_pipeline: "123"}));
+    const res = await post("/api/tickets/9/printed");
+    expect(res.status).toBe(404);
+    expect(hubspot.updateTicket).not.toHaveBeenCalled();
+  });
+});
+
 describe("addFixer", () => {
   it("adds a name once, keeping the order people worked on it", () => {
     expect(addFixer(null, "Paul F")).toBe("Paul F");

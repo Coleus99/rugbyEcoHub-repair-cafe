@@ -73,5 +73,9 @@ export const syncTicket = (id: string) =>
 export const removeFromRestarters = (id: string) =>
   apiFetch<{ ticket: Ticket }>(`/tickets/${id}/restarters`, { method: "DELETE" }).then((r) => r.ticket);
 
+// Marks the job sheet as printed, which also checks the visitor in.
+export const markPrinted = (id: string) =>
+  apiFetch<{ printedAt: string }>(`/tickets/${id}/printed`, { method: "POST" });
+
 export const retryFailedSyncs = () =>
   apiFetch<{ retried: number; synced: number }>("/sync", { method: "POST" });

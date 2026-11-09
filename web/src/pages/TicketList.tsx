@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { getCompletedTickets, getMeta, getTickets, retryFailedSyncs, type Meta, type Ticket } from "../lib/api";
+import { getCompletedTickets, getMeta, getTickets, retryFailedSyncs, type Meta, type Stage, type Ticket } from "../lib/api";
 import { formatDate } from "../lib/format";
+import { awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
 import { bookingLabel, labelFor } from "../lib/ticketForm";
 
 type State = { meta?: Meta; tickets?: Ticket[]; failedSyncs?: number; error?: string };
 type Completed = { tickets?: Ticket[]; days?: number; error?: string };
 
-// Open repair tickets, grouped by stage in board order, newest first.
-// The search box filters this list as you type. "Include completed" adds
-// recently completed tickets, so a wrong outcome can be fixed or notes added.
+// Open repair tickets in two tabs. "To print" is for reception: new bookings
+// whose job sheet hasn't been printed, so people who haven't arrived yet.
+// "Repairs" is for fixers: everything checked in, grouped by stage in board
+// order, newest first. The search box filters both as you type.
+// "Include completed" adds recently completed tickets to Repairs, so a wrong
+// outcome can be fixed or notes added.
 export default function TicketList() {
   const [state, setState] = useState<State>({});
   const [reloads, setReloads] = useState(0);
+  const [tab, setTab] = useState<ListTab>(rememberedTab);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [retryMessage, setRetryMessage] = useState("");
@@ -32,8 +37,9 @@ export default function TicketList() {
   }, [reloads]);
 
   // Only fetched when ticked, and again on Refresh while ticked.
+  const showCompleted = tab === "repairs" && includeCompleted;
   useEffect(() => {
-    if (!includeCompleted) return;
+    if (!showCompleted) return;
     let cancelled = false;
     getCompletedTickets().then(
       ({ tickets, days }) => !cancelled && setCompleted({ tickets, days }),
@@ -42,12 +48,16 @@ export default function TicketList() {
     return () => {
       cancelled = true;
     };
-  }, [includeCompleted, reloads]);
+  }, [showCompleted, reloads]);
 
   const { meta, tickets, failedSyncs, error } = state;
   const refresh = () => {
     setState((s) => ({ ...s, error: undefined }));
     setReloads((n) => n + 1);
+  };
+  const chooseTab = (next: ListTab) => {
+    setTab(next);
+    rememberTab(next);
   };
 
   // Failed syncs can be on closed tickets that aren't in this list, so the
@@ -63,11 +73,14 @@ export default function TicketList() {
     }
   };
 
-  const completedTickets = includeCompleted ? (completed.tickets ?? []) : [];
+  const completedTickets = showCompleted ? (completed.tickets ?? []) : [];
   const categories = categoriesInUse([...(tickets ?? []), ...completedTickets], meta?.options.restarters_category);
   // Drop a chosen category once no listed ticket uses it (e.g. after Refresh).
   const activeCategory = categories.some((c) => c.value === category) ? category : "";
-  const shown = tickets?.filter((t) => matchesSearch(t, query, activeCategory));
+  const shown = tickets?.filter((t) => matchesSearch(t, query, activeCategory)) ?? [];
+  const firstStage = meta?.stages[0]?.id;
+  const toPrint = shown.filter((t) => awaitingPrint(t, firstStage));
+  const repairs = shown.filter((t) => !awaitingPrint(t, firstStage));
   const shownCompleted = completedTickets.filter((t) => matchesSearch(t, query, activeCategory));
   const filtering = !!query.trim() || !!activeCategory;
 
@@ -88,6 +101,11 @@ export default function TicketList() {
       </div>
       {retryMessage && <p role="status">{retryMessage}</p>}
 
+      <div className="tabs" role="tablist" aria-label="Which repairs">
+        <TabButton current={tab} value="toPrint" onSelect={chooseTab} label="To print" count={tickets && toPrint.length} />
+        <TabButton current={tab} value="repairs" onSelect={chooseTab} label="Repairs" count={tickets && repairs.length} />
+      </div>
+
       <div className="search" role="search">
         <input
           type="search"
@@ -104,17 +122,19 @@ export default function TicketList() {
             </option>
           ))}
         </select>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={includeCompleted}
-            onChange={(e) => {
-              setIncludeCompleted(e.target.checked);
-              setCompleted((c) => ({ ...c, error: undefined }));
-            }}
-          />
-          Include completed (last {completed.days ?? 90} days)
-        </label>
+        {tab === "repairs" && (
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={includeCompleted}
+              onChange={(e) => {
+                setIncludeCompleted(e.target.checked);
+                setCompleted((c) => ({ ...c, error: undefined }));
+              }}
+            />
+            Include completed (last {completed.days ?? 90} days)
+          </label>
+        )}
         {filtering && (
           <button
             type="button"
@@ -131,61 +151,60 @@ export default function TicketList() {
       {error && <p role="alert" className="error">{error}</p>}
       {!error && !tickets && <p>Loading…</p>}
 
-      {meta && shown && (
-        <>
-          {tickets!.length === 0 && <p>No open repairs.</p>}
-          {filtering && shown.length === 0 && <p>No open repairs match.</p>}
-          {meta.stages
-            .filter((stage) => stage.open)
-            .map((stage) => {
-              const inStage = shown.filter((t) => t.properties.hs_pipeline_stage === stage.id);
-              if (inStage.length === 0) return null;
-              return (
-                <section key={stage.id}>
-                  <h2>
-                    {stage.label} <span className="count">{inStage.length}</span>
-                  </h2>
-                  <ul className="ticket-list">
-                    {inStage.map((t) => (
-                      <TicketCard key={t.id} ticket={t} meta={meta} />
-                    ))}
-                  </ul>
-                </section>
-              );
-            })}
-        </>
+      {meta && tickets && tab === "toPrint" && (
+        <div role="tabpanel" aria-label="To print">
+          <p className="muted">Print a job sheet when someone arrives. It then moves to Repairs. Anything left here at the end of the session is a no-show.</p>
+          {toPrint.length === 0 && <p>{filtering ? "No bookings to print match." : "Nothing to print."}</p>}
+          <StageGroups stages={meta.stages.filter((s) => s.open)} tickets={toPrint} meta={meta} />
+        </div>
       )}
 
-      {meta && includeCompleted && (
-        <div className="completed">
-          <h2 className="group-title">Completed in the last {completed.days ?? 90} days</h2>
-          {completed.error && <p role="alert" className="error">{completed.error}</p>}
-          {!completed.error && !completed.tickets && <p>Loading…</p>}
-          {completed.tickets && shownCompleted.length === 0 && (
-            <p>{filtering ? "No completed repairs match." : "No completed repairs."}</p>
+      {meta && tickets && tab === "repairs" && (
+        <div role="tabpanel" aria-label="Repairs">
+          {repairs.length === 0 && <p>{filtering ? "No checked-in repairs match." : "No repairs checked in yet. Job sheets printed from To print show up here."}</p>}
+          <StageGroups stages={meta.stages.filter((s) => s.open)} tickets={repairs} meta={meta} />
+
+          {showCompleted && (
+            <div className="completed">
+              <h2 className="group-title">Completed in the last {completed.days ?? 90} days</h2>
+              {completed.error && <p role="alert" className="error">{completed.error}</p>}
+              {!completed.error && !completed.tickets && <p>Loading…</p>}
+              {completed.tickets && shownCompleted.length === 0 && <p>{filtering ? "No completed repairs match." : "No completed repairs."}</p>}
+              <StageGroups stages={meta.stages.filter((s) => !s.open)} tickets={shownCompleted} meta={meta} />
+            </div>
           )}
-          {meta.stages
-            .filter((stage) => !stage.open)
-            .map((stage) => {
-              const inStage = shownCompleted.filter((t) => t.properties.hs_pipeline_stage === stage.id);
-              if (inStage.length === 0) return null;
-              return (
-                <section key={stage.id}>
-                  <h2>
-                    {stage.label} <span className="count">{inStage.length}</span>
-                  </h2>
-                  <ul className="ticket-list">
-                    {inStage.map((t) => (
-                      <TicketCard key={t.id} ticket={t} meta={meta} />
-                    ))}
-                  </ul>
-                </section>
-              );
-            })}
         </div>
       )}
     </>
   );
+}
+
+function TabButton({ current, value, onSelect, label, count }: { current: ListTab; value: ListTab; onSelect: (tab: ListTab) => void; label: string; count?: number }) {
+  return (
+    <button type="button" role="tab" aria-selected={current === value} className="tab" onClick={() => onSelect(value)}>
+      {label} {count !== undefined && <span className="count">{count}</span>}
+    </button>
+  );
+}
+
+// One section per stage that has tickets, in board order.
+function StageGroups({ stages, tickets, meta }: { stages: Stage[]; tickets: Ticket[]; meta: Meta }) {
+  return stages.map((stage) => {
+    const inStage = tickets.filter((t) => t.properties.hs_pipeline_stage === stage.id);
+    if (inStage.length === 0) return null;
+    return (
+      <section key={stage.id}>
+        <h2>
+          {stage.label} <span className="count">{inStage.length}</span>
+        </h2>
+        <ul className="ticket-list">
+          {inStage.map((t) => (
+            <TicketCard key={t.id} ticket={t} meta={meta} />
+          ))}
+        </ul>
+      </section>
+    );
+  });
 }
 
 function TicketCard({ ticket, meta }: { ticket: Ticket; meta: Meta }) {
@@ -205,8 +224,8 @@ function TicketCard({ ticket, meta }: { ticket: Ticket; meta: Meta }) {
         <div className="muted">{details.join(" · ")}</div>
         {p.content && <div className="issue">{p.content}</div>}
       </Link>
-      <Link to={`/tickets/${ticket.id}/print`} className="ticket-print">
-        Print
+      <Link to={`/tickets/${ticket.id}/print`} className={isPrinted(ticket) ? "ticket-print reprint" : "ticket-print"}>
+        {isPrinted(ticket) ? "Reprint" : "Print"}
       </Link>
     </li>
   );

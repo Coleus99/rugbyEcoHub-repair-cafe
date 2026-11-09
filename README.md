@@ -88,6 +88,7 @@ The live portal already has a repair form that creates tickets. The new form kee
 | Next steps | `repair_next_steps` | `next_steps` | **New** |
 | Barrier | `repair_barrier` | `barrier` | **New** |
 | Fixer | `repair_fixer` (dropdown, current fixer) and `repair_fixers` (text, everyone assigned so far, added to by the app) | none | **New** (sandbox 8 November 2026, via `api/hubspot/create-fixer-properties.bru`). Add or remove fixers by editing the `repair_fixer` options in HubSpot. No code change is needed. Each device remembers the last fixer saved on it (browser storage only) and fills it in on a ticket with no fixer as soon as another field is edited (not on open, so viewing or printing changes nothing). |
+| Job sheet printed | `repair_printed_at` (date and time) | none | **New** (sandbox 9 November 2026, via `api/hubspot/create-printed-property.bru`). Set by the app the first time the job sheet is printed. Reprints keep the first time. See [Check-in](#check-in-printing-the-job-sheet). |
 | Restarters ids | `restarters_device_id`, `restarters_event_id` | returned `id`, `eventid` | **New** |
 | Sync status | `restarters_sync_status`, `restarters_sync_error` | none | **New** (sandbox 8 November 2026, via `api/hubspot/create-sync-properties.bru`). Set by the app. Options: Not synced, Synced, Error. |
 
@@ -134,7 +135,7 @@ The app lists tickets in the Open stages and reads stage names and open/closed f
 Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 
 1. **Live HubSpot key.** Create the service key in the live portal with ticket read/write, `crm.objects.contacts.read`, `crm.schemas.tickets.write` (to create the properties) and forms read.
-2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties` and `create-fixer-properties`. Relabel the old properties as "Legacy: …".
+2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties`, `create-fixer-properties` and `create-printed-property`. Relabel the old properties as "Legacy: …".
 3. **Live pipeline.** Set up the stages to match the sandbox (New, In Progress, Needs follow-up, Repaired, Can't repair, Won't repair, No show), with Repaired, Can't repair, Won't repair and No show marked **Closed**. Point both booking forms (online and in-person) at it.
 4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
 5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`.
@@ -268,6 +269,21 @@ The search box filters the list as you type, so it's instant and makes no extra 
 "Include completed" adds tickets completed in the last 90 days (`GET /api/tickets/completed`, `COMPLETED_DAYS` in `functions/src/app.ts`), grouped under each closed stage. They're only loaded when the box is ticked. It's for fixing an outcome set by mistake or adding notes afterwards. Saving a completed ticket at a stage that syncs updates the same Restarters device, because the device id is stored on the ticket.
 
 If someone brings an item back later, it's booked as a new repair. That's fine for the stats, since it's been saved from landfill twice. Email search isn't supported, on purpose, to keep contact details out of the app.
+
+### Check-in: printing the job sheet
+
+Reception prints a job sheet when someone arrives, and that print is the check-in. The app records the first print time in `repair_printed_at` after the print dialog closes (from the Print button or Ctrl/Cmd+P). Cancelling the dialog still counts, because browsers don't say whether the page was actually printed.
+
+The list has two tabs:
+
+- **To print**, for reception. Tickets at the first stage (New) with no print time. That's people who booked ahead and haven't arrived. Anything still there at the end of the session is a no-show.
+- **Repairs**, for fixers. Everything else that's open, grouped by stage, with "Include completed" for recent closed tickets. Cards say Reprint rather than Print.
+
+A ticket moved past New counts as checked in even if its sheet was never printed, so fixers can't lose it. Each device remembers its last tab in browser storage, so the reception laptop opens on To print and the fixers' tablets on Repairs. This replaced an earlier idea of disabling the Print button after use with a "print again" link.
+
+If the repair cafe goes paperless later, check-in still needs something printed: a small label (e.g. a Dymo label) with the short reference, and perhaps the QR code, to stick on the item. The same rule then applies to the label. Printing it sets `repair_printed_at` and moves the ticket to Repairs, so the tabs don't change. Fixers would write the repair up in the app instead of on the sheet. A label page would be a new print layout alongside the A4 sheet, sized to the label roll.
+
+The booking confirmation email doesn't include the reference. It says to report to reception for a ticket number, so the printed sheet is the first time the visitor sees it. Suggested wording for the email in HubSpot: "When you arrive, please go to reception. We'll print a job sheet for your item and give you its 5-digit ticket number." The reference is the last 5 digits of the HubSpot ticket id, so it's digits, not letters.
 
 ### Short reference
 
