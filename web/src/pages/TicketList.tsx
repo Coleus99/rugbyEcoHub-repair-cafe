@@ -188,7 +188,7 @@ export default function TicketList() {
               {done.items.length === 0 && <p>{filtering ? "Nothing done matches." : "Nothing done yet."}</p>}
               {/* Needs follow-up and sync failures are included whatever
                   their date, until they're reopened, closed or fixed. */}
-              <StageGroups stages={meta.stages.filter((s) => !s.open || s.restartersStatus)} tickets={done.items} meta={meta} done />
+              <DoneGroups items={done.items} meta={meta} />
             </>
           )}
         </div>
@@ -227,8 +227,31 @@ function PrintGroup({ title, tickets, meta }: { title: string; tickets: Ticket[]
   );
 }
 
+// Done: Repaired first, then everything else under "Not repaired", one
+// subheading per stage in board order, so the stages still match HubSpot.
+function DoneGroups({ items, meta }: { items: Ticket[]; meta: Meta }) {
+  const doneStages = meta.stages.filter((s) => !s.open || s.restartersStatus);
+  const repaired = doneStages.filter((s) => s.restartersStatus === "Fixed");
+  const notRepaired = doneStages.filter((s) => s.restartersStatus !== "Fixed");
+  const count = notRepaired.reduce((n, s) => n + items.filter((t) => t.properties.hs_pipeline_stage === s.id).length, 0);
+  return (
+    <>
+      <StageGroups stages={repaired} tickets={items} meta={meta} done />
+      {count > 0 && (
+        <section className="not-repaired">
+          <h2>
+            Not repaired <span className="count">{count}</span>
+          </h2>
+          <StageGroups stages={notRepaired} tickets={items} meta={meta} done sub />
+        </section>
+      )}
+    </>
+  );
+}
+
 // One section per stage that has tickets, in board order.
-function StageGroups({ stages, tickets, meta, done, onAssign }: { stages: Stage[]; tickets: Ticket[]; meta: Meta; done?: boolean; onAssign?: (t: Ticket) => void }) {
+function StageGroups({ stages, tickets, meta, done, onAssign, sub }: { stages: Stage[]; tickets: Ticket[]; meta: Meta; done?: boolean; onAssign?: (t: Ticket) => void; sub?: boolean }) {
+  const Heading = sub ? "h3" : "h2";
   // On Done, the only follow-ups are ones handed on (Professional help,
   // Do it yourself), so say so.
   const label = (stage: Stage) => (done && stage.open && stage.restartersStatus ? `${stage.label} (outside the repair cafe)` : stage.label);
@@ -237,9 +260,9 @@ function StageGroups({ stages, tickets, meta, done, onAssign }: { stages: Stage[
     if (inStage.length === 0) return null;
     return (
       <section key={stage.id}>
-        <h2>
+        <Heading>
           {label(stage)} <span className="count">{inStage.length}</span>
-        </h2>
+        </Heading>
         <ul className="ticket-list">
           {inStage.map((t) => (
             <TicketCard key={t.id} ticket={t} meta={meta} done={done} onAssign={onAssign} />
