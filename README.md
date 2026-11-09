@@ -139,7 +139,7 @@ Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 3. **Live pipeline.** Set up the stages to match the sandbox (New, In Progress, Needs follow-up, Repaired, Can't repair, Won't repair, No show), with Repaired, Can't repair, Won't repair and No show marked **Closed**. Point both booking forms (online and in-person) at it.
 4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
 5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`.
-6. **Config.** Create `functions/.env.repair-cafe-prod` with `HUBSPOT_PIPELINE_ID` and `RESTARTERS_STAGE_STATUS` using the live stage ids. Leave out `RESTARTERS_EVENT_ID` so items go on the real session. The live ids can be read with Bruno's pipeline request once the live key is in `api/.env`.
+6. **Config.** Create `functions/.env.repair-cafe-prod` with `HUBSPOT_PIPELINE_ID`, `RESTARTERS_STAGE_STATUS` and `ALLOWED_EMAILS` using the live stage ids. Leave out `RESTARTERS_EVENT_ID` so items go on the real session. The live ids can be read with Bruno's pipeline request once the live key is in `api/.env`.
 7. **Deploy:** `npm --prefix web run build && firebase deploy --project prod`.
 8. **Check:** sign in, open a real ticket, print it, scan the QR code on a phone, then sync one item and check it appears on that session's Restarters event.
 
@@ -228,7 +228,10 @@ Keep the risk down while it's shared:
 - Use a long passphrase of three or four random words, and change it when a volunteer leaves.
 - Show only first names and item details in the ticket list. Customer contact details are personal data under UK GDPR.
 - Limit Restarters writes in the function to group 116's events and to device ids stored on our tickets.
-- Turn on App Check to block scripted requests.
+- Self sign-up is switched off in both Firebase projects (Authentication > Settings > User actions > "Enable create (sign-up)"). Accounts are added by hand in the console.
+- The API also only accepts the accounts listed in `ALLOWED_EMAILS` (in `functions/.env.<project id>`, default `repaircaferugby@gmail.com`). If sign-up is ever switched back on by mistake, a stranger could create an account but would get "Invalid sign-in" from every request. To add a volunteer's own login, add the user in the console, add their email to the list, and deploy the functions.
+- Problem and fix, and Notes, are shared publicly on Restarters. The form says not to include names.
+- App Check (blocking scripted requests) isn't set up. It's an option for later.
 
 ### In-person bookings have no date
 

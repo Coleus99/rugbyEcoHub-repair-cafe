@@ -179,11 +179,11 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
 
         <fieldset className="group-repair">
           <legend>Repair</legend>
-          {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did")}
+          {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did. Shared publicly on Restarters, so don't include names.")}
           {select("repair_spare_parts", "Spare parts", meta.options.repair_spare_parts ?? [])}
           {show.nextSteps && select("repair_next_steps", "Next steps", meta.options.repair_next_steps ?? [])}
           {show.barrier && select("repair_barrier", "Barrier to repair", meta.options.repair_barrier ?? [])}
-          {area("repair_notes", "Notes")}
+          {area("repair_notes", "Notes", "Also shared publicly on Restarters. No names or contact details.")}
         </fieldset>
 
         <RestartersPanel ticket={ticket} meta={meta} onChange={setTicket} disabled={dirty} />

@@ -2,6 +2,7 @@ import {onRequest} from "firebase-functions/v2/https";
 import {defineSecret, defineString} from "firebase-functions/params";
 import {initializeApp} from "firebase-admin/app";
 import {getAuth} from "firebase-admin/auth";
+import {EMULATOR_TEST_EMAIL, isAllowed, parseEmails} from "./access";
 import {createApp} from "./app";
 import {createHubSpot} from "./hubspot";
 import {createRestarters} from "./restarters";
@@ -18,6 +19,10 @@ const RESTARTERS_GROUP_ID = defineString("RESTARTERS_GROUP_ID", {
 });
 // Which pipeline stages sync, as "stageId=Restarters status,...".
 const RESTARTERS_STAGE_STATUS = defineString("RESTARTERS_STAGE_STATUS");
+// Firebase accounts that may use the app, comma-separated.
+const ALLOWED_EMAILS = defineString("ALLOWED_EMAILS", {
+  default: "repaircaferugby@gmail.com",
+});
 // Dev only. Leave blank in prod so items go on the day's real event.
 const RESTARTERS_EVENT_ID = defineString("RESTARTERS_EVENT_ID", {
   default: "",
@@ -34,7 +39,17 @@ const app = createApp({
     stageStatus: parseStageStatus(RESTARTERS_STAGE_STATUS.value()),
     eventIdOverride: RESTARTERS_EVENT_ID.value(),
   }),
-  verifyToken: (token) => getAuth().verifyIdToken(token),
+  verifyToken: async (token) => {
+    const decoded = await getAuth().verifyIdToken(token);
+    const allowed = parseEmails(ALLOWED_EMAILS.value());
+    if (process.env.FUNCTIONS_EMULATOR === "true") {
+      allowed.push(EMULATOR_TEST_EMAIL);
+    }
+    if (!isAllowed(allowed, decoded.email)) {
+      throw new Error(`Account not allowed: ${decoded.email ?? decoded.uid}`);
+    }
+    return decoded;
+  },
 });
 
 export const api = onRequest(
