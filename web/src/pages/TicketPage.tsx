@@ -187,14 +187,14 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
           {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did. Shared publicly on Restarters, so don't include names.")}
           {select("repair_spare_parts", "Spare parts", meta.options.repair_spare_parts ?? [])}
           {show.nextSteps && select("repair_next_steps", "Next steps", meta.options.repair_next_steps ?? [])}
-          {show.nextSteps &&
-            comesBack(draft.repair_next_steps) &&
-            select(
-              "requested_repair_date",
-              "Back on",
-              sessions.map((s) => ({ value: s.date, label: formatDate(s.date) })),
-              sessions.length ? "The session they'll bring it back to. Shows on the Done tab." : "No upcoming sessions on Restarters yet. Add them there to book one.",
-            )}
+          {/* Required when there's a session to pick, so returning items
+              are booked in. With none on Restarters yet, it can be left
+              and shows under "More time needed, not booked" on To print. */}
+          {show.nextSteps && comesBack(draft.repair_next_steps) && (
+            <Field label="Back on" hint={sessions.length ? "The session they'll bring it back to. They'll show under To print for that day." : "No upcoming sessions on Restarters yet. Add them there to book one."}>
+              <Select value={draft.requested_repair_date} options={sessions.map((s) => ({ value: s.date, label: formatDate(s.date) }))} onChange={(v) => set("requested_repair_date", v)} required={sessions.length > 0} />
+            </Field>
+          )}
           {show.barrier && select("repair_barrier", "Barrier to repair", meta.options.repair_barrier ?? [])}
           {area("repair_notes", "Notes", "Also shared publicly on Restarters. No names or contact details.")}
         </fieldset>

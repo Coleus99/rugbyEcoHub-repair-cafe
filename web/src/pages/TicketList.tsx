@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { getCompletedTickets, getMeta, getTickets, updateTicket, type Meta, type Session, type Stage, type Ticket } from "../lib/api";
-import { doneView, followUpStages } from "../lib/done";
+import { doneView, followUpStages, ukDay } from "../lib/done";
 import { formatDate } from "../lib/format";
-import { assignChanges, awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
+import { assignChanges, awaitingPrint, isPrinted, isReturning, printGroups, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
 import { bookingLabel, comesBack, labelFor } from "../lib/ticketForm";
 
@@ -76,8 +76,9 @@ export default function TicketList() {
   // Needs follow-up items are finished with for now, so they're on Done.
   const followUp = followUpStages(meta?.stages ?? []);
   const isFollowUp = (t: Ticket) => followUp.has(t.properties.hs_pipeline_stage ?? "");
+  const groups = printGroups(open, meta?.stages ?? [], ukDay(new Date().toISOString()));
   const tabTickets = {
-    toPrint: open.filter((t) => awaitingPrint(t, firstStage)),
+    toPrint: [...groups.today, ...groups.upcoming, ...groups.unbooked],
     repairs: open.filter((t) => !awaitingPrint(t, firstStage) && !isFollowUp(t)),
     followUps: open.filter(isFollowUp),
     done: completed.tickets ?? [],
@@ -89,6 +90,9 @@ export default function TicketList() {
   const matches = (list: Ticket[]) => list.filter((t) => matchesSearch(t, query, activeCategory));
   const filtering = !!query.trim() || !!activeCategory;
   const toPrint = matches(tabTickets.toPrint);
+  const printToday = matches(groups.today);
+  const printUpcoming = matches(groups.upcoming);
+  const printUnbooked = matches(groups.unbooked);
   const repairs = matches(tabTickets.repairs);
   // Searching Done covers every day in the last 90, not just the session.
   const done = meta && doneView(matches(tabTickets.done), matches(tabTickets.followUps), meta.stages, { sessionDay: completed.session?.date, allDays: filtering, onlyFailed });
@@ -141,14 +145,11 @@ export default function TicketList() {
 
       {meta && tickets && tab === "toPrint" && (
         <div role="tabpanel" aria-label="To print">
-          <p className="muted">Print a job sheet when someone arrives. It then moves to Repairs. Anything left here at the end of the session is a no-show.</p>
+          <p className="muted">Print a job sheet when someone arrives. It then moves to Repairs. For a returning item, assign a fixer instead. Anything left under Today at the end of the session is a no-show.</p>
           {toPrint.length === 0 && <p>{filtering ? "No bookings to print match." : "Nothing to print."}</p>}
-          {/* All at New, so no stage headings. */}
-          <ul className="ticket-list">
-            {toPrint.map((t) => (
-              <TicketCard key={t.id} ticket={t} meta={meta} />
-            ))}
-          </ul>
+          <PrintGroup title="Today" tickets={printToday} meta={meta} onAssign={replaceTicket} />
+          <PrintGroup title="Upcoming sessions" tickets={printUpcoming} meta={meta} onAssign={replaceTicket} />
+          <PrintGroup title="More time needed, not booked" hint="Coming back, but no session chosen. Open one to book it in." tickets={printUnbooked} meta={meta} onAssign={replaceTicket} />
         </div>
       )}
 
@@ -209,6 +210,25 @@ function TabButton({ current, value, onSelect, label, total, matches, alert }: {
   );
 }
 
+// A To print group. Returning items get the fixer dropdown (assigning moves
+// them to In Progress). New bookings just get Print.
+function PrintGroup({ title, hint, tickets, meta, onAssign }: { title: string; hint?: string; tickets: Ticket[]; meta: Meta; onAssign: (t: Ticket) => void }) {
+  if (tickets.length === 0) return null;
+  return (
+    <section>
+      <h2>
+        {title} <span className="count">({tickets.length})</span>
+      </h2>
+      {hint && <p className="muted">{hint}</p>}
+      <ul className="ticket-list">
+        {tickets.map((t) => (
+          <TicketCard key={t.id} ticket={t} meta={meta} onAssign={isReturning(t, meta.stages) ? onAssign : undefined} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 // One section per stage that has tickets, in board order.
 function StageGroups({ stages, tickets, meta, done, onAssign }: { stages: Stage[]; tickets: Ticket[]; meta: Meta; done?: boolean; onAssign?: (t: Ticket) => void }) {
   return stages.map((stage) => {
@@ -251,6 +271,7 @@ function TicketCard({ ticket, meta, done, onAssign }: { ticket: Ticket; meta: Me
         <span className="ref">#{shortRef(ticket.id)}</span> <strong>{p.subject || "(no name)"}</strong>
         {makeModel && <span> · {makeModel}</span>}
         {p.restarters_sync_status === "Error" && <span className="badge error"> Sync error</span>}
+        {!done && isReturning(ticket, meta.stages) && <span className="badge"> Returning</span>}
         <div className="muted">{details.join(" · ")}</div>
         {done && p.restarters_sync_status === "Error" && <div className="error">{p.restarters_sync_error}</div>}
         {!done && p.content && <div className="issue">{p.content}</div>}
