@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { getMeta, getTicket, getUpcomingSessions, removeFromRestarters, syncTicket, updateTicket, type Meta, type Option, type UpcomingSession, type SyncResult, type Ticket } from "../lib/api";
-import { bookingLabel, changedProperties, rebookDate, itemTypeFromCategory, labelFor, needsWeight, outcomeFields, toDraft, type Draft } from "../lib/ticketForm";
+import { bookingLabel, changedProperties, comesBack, rebookDate, itemTypeFromCategory, labelFor, needsWeight, outcomeFields, toDraft, type Draft } from "../lib/ticketForm";
 import { shortRef } from "../lib/search";
 import { formatDate } from "../lib/format";
 import { ukDay } from "../lib/done";
@@ -65,7 +65,9 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
 
   const set = (name: string, value: string) => {
     if (name === "repair_fixer") setFixerTouched(true);
-    setDraft((d) => (name === "repair_fixer" ? { ...d, [name]: value } : withFixer({ ...d, [name]: value })));
+    // "More time needed" means it's coming back: book the next session.
+    const rebook: Draft = name === "repair_next_steps" && comesBack(value) ? { requested_repair_date: rebookDate(draft.requested_repair_date, sessions, ukDay(new Date().toISOString())) } : {};
+    setDraft((d) => (name === "repair_fixer" ? { ...d, [name]: value } : withFixer({ ...d, [name]: value, ...rebook })));
     setStatus({ kind: "idle" });
   };
 
@@ -82,8 +84,6 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
         hs_pipeline_stage: stageId,
         repair_next_steps: next.nextSteps ? d.repair_next_steps : "",
         repair_barrier: next.barrier ? d.repair_barrier : "",
-        // Needs follow-up: book it in for the next session.
-        requested_repair_date: next.nextSteps ? rebookDate(d.requested_repair_date, sessions, ukDay(new Date().toISOString())) : d.requested_repair_date,
       }),
     );
     setStatus({ kind: "idle" });
@@ -188,6 +188,7 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
           {select("repair_spare_parts", "Spare parts", meta.options.repair_spare_parts ?? [])}
           {show.nextSteps && select("repair_next_steps", "Next steps", meta.options.repair_next_steps ?? [])}
           {show.nextSteps &&
+            comesBack(draft.repair_next_steps) &&
             select(
               "requested_repair_date",
               "Back on",

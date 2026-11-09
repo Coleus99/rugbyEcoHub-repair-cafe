@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bookingLabel,
   changedProperties,
+  comesBack,
   itemTypeFromCategory,
   labelFor,
   needsWeight,
@@ -109,5 +110,14 @@ describe("rebookDate", () => {
 
   it("leaves it alone if there are no sessions to offer", () => {
     expect(rebookDate("2026-11-21", [], "2026-11-21")).toBe("2026-11-21");
+  });
+});
+
+describe("comesBack", () => {
+  it("is only for More time needed", () => {
+    expect(comesBack("More time needed")).toBe(true);
+    expect(comesBack("Professional help")).toBe(false);
+    expect(comesBack("Do it yourself")).toBe(false);
+    expect(comesBack(null)).toBe(false);
   });
 });

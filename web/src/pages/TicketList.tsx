@@ -5,7 +5,7 @@ import { doneView, followUpStages } from "../lib/done";
 import { formatDate } from "../lib/format";
 import { awaitingPrint, isPrinted, rememberedTab, rememberTab, type ListTab } from "../lib/listTab";
 import { categoriesInUse, matchesSearch, shortRef } from "../lib/search";
-import { bookingLabel, labelFor } from "../lib/ticketForm";
+import { bookingLabel, comesBack, labelFor } from "../lib/ticketForm";
 
 type State = { meta?: Meta; tickets?: Ticket[]; failedSyncs?: number; error?: string };
 type Completed = { tickets?: Ticket[]; days?: number; session?: Session | null; error?: string };
@@ -229,7 +229,9 @@ function TicketCard({ ticket, meta, done }: { ticket: Ticket; meta: Meta; done?:
   const makeModel = [p.repair_item_brand, p.repair_item_model].filter(Boolean).join(" ");
   const category = labelFor(meta.options.restarters_category, p.restarters_category);
   // Completed tickets show when they were completed rather than booked.
-  const when = p.closed_date ? `Completed ${formatDate(p.closed_date)}` : bookingLabel(p);
+  // Follow-ups on Done only show a date if they're coming back.
+  const followUpDate = comesBack(p.repair_next_steps) && p.requested_repair_date ? `Back on ${formatDate(p.requested_repair_date)}` : "";
+  const when = p.closed_date ? `Completed ${formatDate(p.closed_date)}` : done ? followUpDate : bookingLabel(p);
   // Follow-ups on Done also say what's next, e.g. "More time needed".
   const nextStep = done && p.closed_date === null && labelFor(meta.options.repair_next_steps, p.repair_next_steps);
   const details = [ticket.firstName, category, p.repair_fixer && `Fixer ${p.repair_fixer}`, nextStep && `Next: ${nextStep}`, when].filter(Boolean);

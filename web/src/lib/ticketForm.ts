@@ -51,8 +51,13 @@ export function outcomeFields(restartersStatus: string | null | undefined) {
 const MISC_CATEGORIES = ["46", "50"];
 export const needsWeight = (category: string | null | undefined) => MISC_CATEGORIES.includes(category ?? "");
 
-// When an item is marked Needs follow-up, book it in for the next session
-// unless it's already booked for a later one.
+// Of the Needs follow-up next steps, only "More time needed" means the
+// item comes back to a session. "Professional help" and "Do it yourself"
+// don't, so they aren't rebooked.
+export const comesBack = (nextSteps: string | null | undefined) => nextSteps === "More time needed";
+
+// Book a returning item in for the next session, unless it's already
+// booked for a later one.
 export function rebookDate(current: string, sessions: { date: string }[], today: string): string {
   if (current && current > today) return current;
   return sessions[0]?.date ?? current;
