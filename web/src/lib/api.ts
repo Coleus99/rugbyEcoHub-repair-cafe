@@ -54,6 +54,20 @@ export function getMeta(): Promise<Meta> {
   return metaPromise;
 }
 
+// Upcoming sessions on Restarters, for rebooking a Needs follow-up item.
+export type UpcomingSession = { date: string; title: string };
+let upcomingPromise: Promise<UpcomingSession[]> | undefined;
+export function getUpcomingSessions(): Promise<UpcomingSession[]> {
+  upcomingPromise ??= apiFetch<{ sessions: UpcomingSession[] }>("/sessions/upcoming").then(
+    (r) => r.sessions,
+    () => {
+      upcomingPromise = undefined; // let the next call retry
+      return [];
+    },
+  );
+  return upcomingPromise;
+}
+
 export const getTickets = () => apiFetch<{ tickets: Ticket[]; failedSyncs: number }>("/tickets");
 
 // Tickets completed in the last `days` days (90), newest first.

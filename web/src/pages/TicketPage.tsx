@@ -1,14 +1,16 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
-import { getMeta, getTicket, removeFromRestarters, syncTicket, updateTicket, type Meta, type Option, type SyncResult, type Ticket } from "../lib/api";
-import { bookingLabel, changedProperties, itemTypeFromCategory, labelFor, needsWeight, outcomeFields, toDraft, type Draft } from "../lib/ticketForm";
+import { getMeta, getTicket, getUpcomingSessions, removeFromRestarters, syncTicket, updateTicket, type Meta, type Option, type UpcomingSession, type SyncResult, type Ticket } from "../lib/api";
+import { bookingLabel, changedProperties, rebookDate, itemTypeFromCategory, labelFor, needsWeight, outcomeFields, toDraft, type Draft } from "../lib/ticketForm";
 import { shortRef } from "../lib/search";
+import { formatDate } from "../lib/format";
+import { ukDay } from "../lib/done";
 import { rememberedFixer, rememberFixer } from "../lib/deviceFixer";
 
 // Matches EDITABLE_PROPERTIES in functions/src/app.ts.
-const FORM_PROPERTIES = ["hs_pipeline_stage", "subject", "content", "restarters_category", "repair_item_type", "repair_item_brand", "repair_item_model", "repair_item_year_made", "repair_item_weight_kg", "repair_problem_and_fix", "repair_spare_parts", "repair_next_steps", "repair_barrier", "repair_notes", "repair_fixer"];
+const FORM_PROPERTIES = ["hs_pipeline_stage", "subject", "content", "restarters_category", "repair_item_type", "repair_item_brand", "repair_item_model", "repair_item_year_made", "repair_item_weight_kg", "repair_problem_and_fix", "repair_spare_parts", "repair_next_steps", "repair_barrier", "repair_notes", "repair_fixer", "requested_repair_date"];
 
-type State = { meta?: Meta; ticket?: Ticket; error?: string };
+type State = { meta?: Meta; ticket?: Ticket; sessions?: UpcomingSession[]; error?: string };
 
 // Loads the ticket, then hands it to the form. The key resets the form
 // when you move to a different ticket.
@@ -18,8 +20,8 @@ export default function TicketPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getMeta(), getTicket(id)]).then(
-      ([meta, ticket]) => !cancelled && setState({ meta, ticket }),
+    Promise.all([getMeta(), getTicket(id), getUpcomingSessions()]).then(
+      ([meta, ticket, sessions]) => !cancelled && setState({ meta, ticket, sessions }),
       (err: Error) => !cancelled && setState({ error: err.message }),
     );
     return () => {
@@ -27,7 +29,7 @@ export default function TicketPage() {
     };
   }, [id]);
 
-  const { meta, ticket, error } = state;
+  const { meta, ticket, sessions = [], error } = state;
   if (error)
     return (
       <p role="alert" className="error">
@@ -35,12 +37,12 @@ export default function TicketPage() {
       </p>
     );
   if (!meta || !ticket || ticket.id !== id) return <p>Loading…</p>;
-  return <TicketForm key={ticket.id} initial={ticket} meta={meta} />;
+  return <TicketForm key={ticket.id} initial={ticket} meta={meta} sessions={sessions} />;
 }
 
 type Status = { kind: "idle" | "saving" | "saved" | "error"; message?: string };
 
-function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
+function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; sessions: UpcomingSession[] }) {
   const [ticket, setTicket] = useState(initial);
   // The fixer last saved on this device, if they're still in the list.
   // It's filled in on a ticket with no fixer once someone edits another
@@ -80,6 +82,8 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
         hs_pipeline_stage: stageId,
         repair_next_steps: next.nextSteps ? d.repair_next_steps : "",
         repair_barrier: next.barrier ? d.repair_barrier : "",
+        // Needs follow-up: book it in for the next session.
+        requested_repair_date: next.nextSteps ? rebookDate(d.requested_repair_date, sessions, ukDay(new Date().toISOString())) : d.requested_repair_date,
       }),
     );
     setStatus({ kind: "idle" });
@@ -183,6 +187,13 @@ function TicketForm({ initial, meta }: { initial: Ticket; meta: Meta }) {
           {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did. Shared publicly on Restarters, so don't include names.")}
           {select("repair_spare_parts", "Spare parts", meta.options.repair_spare_parts ?? [])}
           {show.nextSteps && select("repair_next_steps", "Next steps", meta.options.repair_next_steps ?? [])}
+          {show.nextSteps &&
+            select(
+              "requested_repair_date",
+              "Back on",
+              sessions.map((s) => ({ value: s.date, label: formatDate(s.date) })),
+              sessions.length ? "The session they'll bring it back to. Shows on the Done tab." : "No upcoming sessions on Restarters yet. Add them there to book one.",
+            )}
           {show.barrier && select("repair_barrier", "Barrier to repair", meta.options.repair_barrier ?? [])}
           {area("repair_notes", "Notes", "Also shared publicly on Restarters. No names or contact details.")}
         </fieldset>

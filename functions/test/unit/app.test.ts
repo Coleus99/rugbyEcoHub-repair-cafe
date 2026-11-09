@@ -33,6 +33,8 @@ const fakeHubSpot = () => ({
 });
 
 const fakeRestarters = () => ({
+  eventsBetween: vi.fn(async () =>
+    [{id: 19170, start: "2026-12-05T10:00:00+00:00", title: ""}]),
   latestEventOnOrBefore: vi.fn(async () =>
     ({id: 19168, start: "", title: ""})),
   createDevice: vi.fn(async () => 555),
@@ -499,5 +501,21 @@ describe("closing after the session", () => {
     const res = await request(appOn("2026-11-23T09:00:00Z"))
       .get("/api/tickets/completed").set("Authorization", "Bearer x");
     expect(res.body.session).toEqual({...SESSION, date: "2026-11-21"});
+  });
+});
+
+describe("GET /api/sessions/upcoming", () => {
+  it("lists the group's upcoming Restarters sessions", async () => {
+    const res = await request(createApp({
+      hubspot: () => hubspot as unknown as HubSpot,
+      pipelineId: () => "0",
+      restarters: () => restarters as unknown as Restarters,
+      syncConfig: () => ({groupId: "116", stageStatus: {}}),
+      verifyToken: async () => undefined,
+      now: () => new Date("2026-11-22T09:00:00Z"),
+    })).get("/api/sessions/upcoming").set("Authorization", "Bearer x");
+    expect(restarters.eventsBetween)
+      .toHaveBeenCalledWith("116", "2026-11-22", "2027-01-17");
+    expect(res.body.sessions).toEqual([{date: "2026-12-05", title: ""}]);
   });
 });

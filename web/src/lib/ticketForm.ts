@@ -50,3 +50,10 @@ export function outcomeFields(restartersStatus: string | null | undefined) {
 // Misc ones (46 powered, 50 unpowered), so only ask for a weight on those.
 const MISC_CATEGORIES = ["46", "50"];
 export const needsWeight = (category: string | null | undefined) => MISC_CATEGORIES.includes(category ?? "");
+
+// When an item is marked Needs follow-up, book it in for the next session
+// unless it's already booked for a later one.
+export function rebookDate(current: string, sessions: { date: string }[], today: string): string {
+  if (current && current > today) return current;
+  return sessions[0]?.date ?? current;
+}

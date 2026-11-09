@@ -40,6 +40,16 @@ export const createRestarters = (token: string, fetchFn = fetch) => {
   };
 
   return {
+    // The group's events between two UK dates (YYYY-MM-DD), inclusive.
+    eventsBetween: async (groupId: string, start: string, end: string) => {
+      const data = await call<{data: RestartersEvent[]}>(
+        "GET",
+        `/groups/${groupId}/events?start=${start}T00:00:00Z` +
+          `&end=${end}T23:59:59Z`,
+      );
+      return data.data;
+    },
+
     // The group's latest event on or before the given UK date: that day's
     // session if there is one, otherwise the most recent before it. Looks
     // back 6 months.

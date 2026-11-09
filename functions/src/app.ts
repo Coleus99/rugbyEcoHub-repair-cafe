@@ -13,6 +13,7 @@ import {
   type Ticket,
 } from "./hubspot";
 import {londonDate, type Restarters} from "./restarters";
+import {upcomingSessions, type UpcomingSession} from "./sessions";
 import {
   removeFromRestarters,
   syncTicket,
@@ -66,6 +67,8 @@ export const EDITABLE_PROPERTIES = [
   "repair_next_steps",
   "repair_barrier",
   "repair_fixer",
+  // Set when rebooking a Needs follow-up item for a later session.
+  "requested_repair_date",
 ];
 
 // Dropdowns in the edit form.
@@ -101,6 +104,11 @@ export type AppDeps = {
 
 // The group's most recent repair session (Restarters event) up to today.
 export type Session = {id: number; date: string; start: string; title: string};
+
+// How far ahead to look for sessions to rebook a Needs follow-up item.
+// Restarters usually lists about four weeks ahead. Anything it has within
+// this window is offered.
+export const REBOOK_WEEKS = 8;
 
 // How far back "Also search completed" looks.
 export const COMPLETED_DAYS = 90;
@@ -149,6 +157,30 @@ export const createApp = (deps: AppDeps) => {
 
   app.get("/api/meta", async (_req, res) => {
     res.json(await getMeta());
+  });
+
+  // Sessions a Needs follow-up item can be rebooked for: the group's
+  // upcoming Restarters events. Empty if Restarters can't be reached.
+  let upcomingCache: {value: UpcomingSession[]; expires: number} | undefined;
+  app.get("/api/sessions/upcoming", async (_req, res) => {
+    if (!upcomingCache || upcomingCache.expires <= Date.now()) {
+      const today = londonDate(deps.now?.() ?? new Date());
+      const end = new Date(`${today}T12:00:00Z`);
+      end.setUTCDate(end.getUTCDate() + REBOOK_WEEKS * 7);
+      let events: Awaited<ReturnType<Restarters["eventsBetween"]>> = [];
+      try {
+        events = await deps.restarters().eventsBetween(
+          deps.syncConfig().groupId, today, end.toISOString().slice(0, 10),
+        );
+      } catch (err) {
+        console.warn("Couldn't read upcoming Restarters events", err);
+      }
+      upcomingCache = {
+        value: upcomingSessions(events, today),
+        expires: Date.now() + 10 * 60 * 1000,
+      };
+    }
+    res.json({sessions: upcomingCache.value});
   });
 
   // The latest session changes at most once a week, so cache it briefly.

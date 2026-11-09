@@ -6,6 +6,7 @@ import {
   labelFor,
   needsWeight,
   outcomeFields,
+  rebookDate,
   toDraft,
 } from "./ticketForm";
 
@@ -91,5 +92,22 @@ describe("needsWeight", () => {
     expect(needsWeight("50")).toBe(true);
     expect(needsWeight("43")).toBe(false);
     expect(needsWeight(null)).toBe(false);
+  });
+});
+
+describe("rebookDate", () => {
+  const sessions = [{ date: "2026-12-05" }, { date: "2026-12-19" }];
+
+  it("books the next session", () => {
+    expect(rebookDate("", sessions, "2026-11-21")).toBe("2026-12-05");
+    expect(rebookDate("2026-11-21", sessions, "2026-11-21")).toBe("2026-12-05");
+  });
+
+  it("keeps a later booking", () => {
+    expect(rebookDate("2026-12-19", sessions, "2026-11-21")).toBe("2026-12-19");
+  });
+
+  it("leaves it alone if there are no sessions to offer", () => {
+    expect(rebookDate("2026-11-21", [], "2026-11-21")).toBe("2026-11-21");
   });
 });
