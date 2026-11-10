@@ -41,7 +41,7 @@ export default function TicketPage() {
   return <TicketForm key={ticket.id} initial={ticket} meta={meta} sessions={sessions} />;
 }
 
-type Status = { kind: "idle" | "saving" | "error"; message?: string };
+type Status = { kind: "idle" | "saving" | "saved" | "error"; message?: string };
 
 function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; sessions: UpcomingSession[] }) {
   const [ticket, setTicket] = useState(initial);
@@ -59,7 +59,8 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
   const [draft, setDraft] = useState<Draft>(() => toDraft(initial.properties, FORM_PROPERTIES));
   const withFixer = (d: Draft): Draft => (prefilledFixer && !fixerTouched && !d.repair_fixer ? { ...d, repair_fixer: prefilledFixer } : d);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  // After a save, show a summary instead of the form until they choose Edit.
+  // After saving at a closed stage (the job is finished), show a summary
+  // instead of the form until they choose Edit. Open stages stay on the form.
   const [summary, setSummary] = useState<SyncResult | null>(null);
   // Not signed in: opened from a job sheet's QR code, for this ticket only.
   const guest = !useAuth().user;
@@ -120,9 +121,14 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
       setTicket(saved);
       setDraft(toDraft(saved.properties, FORM_PROPERTIES));
       rememberFixer(saved.properties.repair_fixer ?? "");
-      setStatus({ kind: "idle" });
-      setSummary(sync);
-      window.scrollTo(0, 0);
+      const closed = meta.stages.some((s) => s.id === saved.properties.hs_pipeline_stage && !s.open);
+      if (closed) {
+        setStatus({ kind: "idle" });
+        setSummary(sync);
+        window.scrollTo(0, 0);
+      } else {
+        setStatus({ kind: "saved", message: syncMessage(sync) });
+      }
     } catch (err) {
       setStatus({ kind: "error", message: (err as Error).message });
     }
@@ -215,6 +221,7 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
           <button type="submit" disabled={!dirty || status.kind === "saving"}>
             {status.kind === "saving" ? "Saving…" : "Save"}
           </button>
+          {status.kind === "saved" && <span role="status">Saved{status.message && `. ${status.message}`}</span>}
           {status.kind === "error" && (
             <span role="alert" className="error">
               {status.message}
@@ -227,7 +234,13 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
   );
 }
 
-// Shown after a save, so it's obvious the job is recorded. Edit goes back
+function syncMessage(sync: SyncResult): string {
+  if (sync.status === "Synced") return `On Restarters (device ${sync.deviceId})`;
+  if (sync.status === "Error") return `Restarters sync error: ${sync.error}`;
+  return "";
+}
+
+// Shown after saving a closed ticket, so it's obvious the job is finished. Edit goes back
 // to the form.
 function SavedSummary({ ticket, meta, sync, guest, onEdit }: { ticket: Ticket; meta: Meta; sync: SyncResult; guest: boolean; onEdit: () => void }) {
   const p = ticket.properties;

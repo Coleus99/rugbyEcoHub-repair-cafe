@@ -346,7 +346,7 @@ When a job sheet is printed, the server issues a ticket key (`POST /api/tickets/
 
 ### Saving shows a summary
 
-After a save, the ticket page shows a "Saved" summary (status, fixer, repair details, next steps, and whether it's on Restarters) instead of the form, so it's obvious the job is recorded. "Edit repair" goes back to the form. Signed-in users also get "Back to list". Someone who opened it from a QR code is told they can close the page.
+After saving a ticket at a closed stage (Repaired, Can't repair, Won't repair, No show), the ticket page shows a "Saved" summary (status, fixer, repair details, next steps, and whether it's on Restarters) instead of the form, so it's obvious the job is finished. Saving at an open stage (In Progress, Needs follow-up) stays on the form with a "Saved" message. "Edit repair" goes back to the form. Signed-in users also get "Back to list". Someone who opened it from a QR code is told they can close the page.
 
 ### Short reference
 
