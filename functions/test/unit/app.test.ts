@@ -537,10 +537,10 @@ describe("QR ticket keys", () => {
   const key = (id: string, expires = NOW.getTime() + 1000) =>
     `Ticket ${signTicketKey("secret", id, expires)}`;
 
-  it("issues a 3-hour key to a signed-in user", async () => {
+  it("issues a 4-hour key to a signed-in user", async () => {
     const res = await request(keyApp()).post(`/api/tickets/${TICKET.id}/key`)
       .set("Authorization", "Bearer good");
-    expect(res.body.expires).toBe(NOW.getTime() + 3 * 60 * 60 * 1000);
+    expect(res.body.expires).toBe(NOW.getTime() + 4 * 60 * 60 * 1000);
     expect(res.body.key).toMatch(new RegExp(`^${TICKET.id}\\.`));
   });
 

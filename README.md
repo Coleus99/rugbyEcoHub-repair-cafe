@@ -255,7 +255,7 @@ Keep the risk down while it's shared:
 - Self sign-up is switched off in both Firebase projects (Authentication > Settings > User actions > "Enable create (sign-up)"). Accounts are added by hand in the console.
 - The API also only accepts the accounts listed in `ALLOWED_EMAILS` (in `functions/.env.<project id>`, default `repaircaferugby@gmail.com`). If sign-up is ever switched back on by mistake, a stranger could create an account but would get "Invalid sign-in" from every request. To add a volunteer's own login, add the user in the console, add their email to the list, and deploy the functions.
 - Problem and fix, and Notes, are shared publicly on Restarters. The form says not to include names.
-- Job sheet QR codes carry a ticket key that opens that one ticket without signing in, for 3 hours after printing. See [QR codes](#qr-codes-open-one-ticket-without-signing-in).
+- Job sheet QR codes carry a ticket key that opens that one ticket without signing in, for 4 hours after printing. See [QR codes](#qr-codes-open-one-ticket-without-signing-in).
 - App Check (blocking scripted requests) isn't set up. It's an option for later.
 
 ### In-person bookings have no date
@@ -336,7 +336,7 @@ It isn't rebooked as a new ticket, because that would add a second Restarters re
 
 ### QR codes open one ticket without signing in
 
-When a job sheet is printed, the server issues a ticket key (`POST /api/tickets/:id/key`, signed-in users only) and the QR code links to `/tickets/<id>?key=<key>`. A fixer who scans it can open, edit, save and resync that ticket without signing in, until 3 hours after the sheet was printed (`TICKET_KEY_HOURS` in `functions/src/ticketKey.ts`). The sheet shows the time under the code. Reprinting issues a fresh key.
+When a job sheet is printed, the server issues a ticket key (`POST /api/tickets/:id/key`, signed-in users only) and the QR code links to `/tickets/<id>?key=<key>`. A fixer who scans it can open, edit, save and resync that ticket without signing in, until 4 hours after the sheet was printed, so sheets can be printed before the session starts (`TICKET_KEY_HOURS` in `functions/src/ticketKey.ts`). The sheet shows the time under the code. Reprinting issues a fresh key.
 
 - The key is `<ticket id>.<expiry>.<signature>`, signed with the `QR_SIGNING_KEY` secret (HMAC-SHA256). Changing the id or expiry breaks the signature.
 - It only allows reading the form's options and upcoming sessions, and reading, saving and resyncing its own ticket. It can't open the list or another ticket, print, issue more keys or remove the item from Restarters.

@@ -4,7 +4,7 @@
 // works for a few hours after the sheet is printed.
 import {createHmac, timingSafeEqual} from "node:crypto";
 
-export const TICKET_KEY_HOURS = 3;
+export const TICKET_KEY_HOURS = 4;
 
 const sign = (secret: string, payload: string) =>
   createHmac("sha256", secret).update(payload).digest("base64url");

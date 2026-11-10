@@ -66,7 +66,7 @@ export default function TicketPrint() {
   if (!meta || !ticket) return <p>Loading…</p>;
 
   const p = ticket.properties;
-  // With a key, scanning opens this ticket without signing in for 3 hours.
+  // With a key, scanning opens this ticket without signing in for 4 hours (long enough to print before a session starts).
   const url = `${window.location.origin}/tickets/${ticket.id}${qrKey ? `?key=${encodeURIComponent(qrKey)}` : ""}`;
   const outcomes = meta.stages
     .filter((s) => !NOT_OUTCOMES.test(s.label))
