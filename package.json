@@ -4,8 +4,12 @@
   "scripts": {
     "setup": "npm install && npm --prefix web install && npm --prefix functions install",
     "dev": "npm --prefix functions run build && concurrently --names functions,emulators,web --prefix-colors blue,yellow,green \"npm --prefix functions run build:watch -- --preserveWatchOutput\" \"firebase emulators:start --only auth,functions,hosting --import=.emulator-data --export-on-exit\" \"npm --prefix web run dev\"",
-    "deploy:dev": "npm --prefix web run build -- --mode development && firebase deploy --project dev && gcloud run services update api --region=europe-west2 --project=repair-cafe-dev --no-invoker-iam-check --quiet",
-    "deploy:prod": "npm --prefix web run build && firebase deploy --project prod && gcloud run services update api --region=europe-west2 --project=repair-cafe-prod --no-invoker-iam-check --quiet"
+    "deploy:dev": "npm run qr-key:ensure:dev && npm --prefix web run build -- --mode development && firebase deploy --project dev && gcloud run services update api --region=europe-west2 --project=repair-cafe-dev --no-invoker-iam-check --quiet",
+    "deploy:prod": "npm run qr-key:ensure:prod && npm --prefix web run build && firebase deploy --project prod && gcloud run services update api --region=europe-west2 --project=repair-cafe-prod --no-invoker-iam-check --quiet",
+    "qr-key:ensure:dev": "firebase functions:secrets:describe QR_SIGNING_KEY --project dev >/dev/null 2>&1 || npm run rotate-qr-key:dev",
+    "rotate-qr-key:dev": "openssl rand -base64 32 | firebase functions:secrets:set QR_SIGNING_KEY --project dev --data-file - --force",
+    "qr-key:ensure:prod": "firebase functions:secrets:describe QR_SIGNING_KEY --project prod >/dev/null 2>&1 || npm run rotate-qr-key:prod",
+    "rotate-qr-key:prod": "openssl rand -base64 32 | firebase functions:secrets:set QR_SIGNING_KEY --project prod --data-file - --force"
   },
   "devDependencies": {
     "concurrently": "^9.2.5"

@@ -138,7 +138,7 @@ Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties`, `create-fixer-properties` and `create-printed-property`. Relabel the old properties as "Legacy: …".
 3. **Live pipeline.** Set up the stages to match the sandbox (New, In Progress, Needs follow-up, Repaired, Can't repair, Won't repair, No show), with Repaired, Can't repair, Won't repair and No show marked **Closed**. Point both booking forms (online and in-person) at it.
 4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Give its default compute service account the Cloud Build role (see [Local development](#local-development), as for dev). Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
-5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN` and `QR_SIGNING_KEY` (any long random string, e.g. from `openssl rand -base64 32`). Dev needs `QR_SIGNING_KEY` set the same way before its next deploy.
+5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`. `QR_SIGNING_KEY` is created by `npm run deploy:prod` the first time.
 6. **Config.** Create `functions/.env.repair-cafe-prod` with `HUBSPOT_PIPELINE_ID`, `RESTARTERS_STAGE_STATUS` and `ALLOWED_EMAILS` using the live stage ids. Leave out `RESTARTERS_EVENT_ID` so items go on the real session. The live ids can be read with Bruno's pipeline request once the live key is in `api/.env`.
 7. **Deploy:** `npm run deploy:prod`.
 8. **Custom domain.** In the prod project, Hosting → Add custom domain → `repair.rugbyecohub.org`, then add the DNS records it gives at whoever manages rugbyecohub.org. Check the domain is listed under Authentication → Settings → Authorized domains. Job sheet QR codes use the address the page was opened on, so print from the new domain once it's live.
@@ -343,6 +343,7 @@ When a job sheet is printed, the server issues a ticket key (`POST /api/tickets/
 - The browser keeps it for that tab only (session storage) and removes it from the address bar.
 - Anyone holding the sheet can open that one item until the key expires. That's the item, the customer's first name and the repair details. After that the QR code goes to the sign-in page.
 - Without `QR_SIGNING_KEY`, sheets print a plain link that needs signing in.
+- `npm run deploy:dev` and `deploy:prod` create a random `QR_SIGNING_KEY` (`openssl rand -base64 32`) if the project doesn't have one. They don't replace an existing one, because a new key stops every QR code printed in the last 4 hours from working, which would catch out fixers if you deployed during a session. To change it on purpose, ideally between sessions, run `npm run rotate-qr-key:dev` or `rotate-qr-key:prod`. That sets a new key and redeploys the function to use it. Sheets printed before then go to the sign-in page when scanned.
 
 ### Saving shows a summary
 
