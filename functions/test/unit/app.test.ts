@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import request from "supertest";
 import {addFixer, createApp, READ_PROPERTIES} from "../../src/app";
+import {signTicketKey} from "../../src/ticketKey";
 import {
   HubSpotError,
   type HubSpot,
@@ -517,5 +518,58 @@ describe("GET /api/sessions/upcoming", () => {
     expect(restarters.eventsBetween)
       .toHaveBeenCalledWith("116", "2026-11-22", "2027-01-17");
     expect(res.body.sessions).toEqual([{date: "2026-12-05", title: ""}]);
+  });
+});
+
+describe("QR ticket keys", () => {
+  const NOW = new Date("2026-11-21T10:00:00Z");
+  const keyApp = () => createApp({
+    hubspot: () => hubspot as unknown as HubSpot,
+    pipelineId: () => "0",
+    restarters: () => restarters as unknown as Restarters,
+    syncConfig: () => ({groupId: "116", stageStatus: {}}),
+    verifyToken: async (token) => {
+      if (token !== "good") throw new Error("bad token");
+    },
+    now: () => NOW,
+    ticketKeySecret: () => "secret",
+  });
+  const key = (id: string, expires = NOW.getTime() + 1000) =>
+    `Ticket ${signTicketKey("secret", id, expires)}`;
+
+  it("issues a 3-hour key to a signed-in user", async () => {
+    const res = await request(keyApp()).post(`/api/tickets/${TICKET.id}/key`)
+      .set("Authorization", "Bearer good");
+    expect(res.body.expires).toBe(NOW.getTime() + 3 * 60 * 60 * 1000);
+    expect(res.body.key).toMatch(new RegExp(`^${TICKET.id}\\.`));
+  });
+
+  it("opens and saves its own ticket", async () => {
+    const auth = key(TICKET.id);
+    expect((await request(keyApp()).get(`/api/tickets/${TICKET.id}`)
+      .set("Authorization", auth)).status).toBe(200);
+    expect((await request(keyApp()).patch(`/api/tickets/${TICKET.id}`)
+      .set("Authorization", auth)
+      .send({properties: {repair_notes: "x"}})).status).toBe(200);
+  });
+
+  it("won't open the list or another ticket", async () => {
+    expect((await request(keyApp()).get("/api/tickets")
+      .set("Authorization", key(TICKET.id))).status).toBe(403);
+    expect((await request(keyApp()).get("/api/tickets/999")
+      .set("Authorization", key(TICKET.id))).status).toBe(403);
+  });
+
+  it("can't issue more keys", async () => {
+    const res = await request(keyApp()).post(`/api/tickets/${TICKET.id}/key`)
+      .set("Authorization", key(TICKET.id));
+    expect(res.status).toBe(403);
+  });
+
+  it("says when the key has expired", async () => {
+    const res = await request(keyApp()).get(`/api/tickets/${TICKET.id}`)
+      .set("Authorization", key(TICKET.id, NOW.getTime() - 1));
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/expired/);
   });
 });

@@ -138,7 +138,7 @@ Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties`, `create-fixer-properties` and `create-printed-property`. Relabel the old properties as "Legacy: …".
 3. **Live pipeline.** Set up the stages to match the sandbox (New, In Progress, Needs follow-up, Repaired, Can't repair, Won't repair, No show), with Repaired, Can't repair, Won't repair and No show marked **Closed**. Point both booking forms (online and in-person) at it.
 4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Give its default compute service account the Cloud Build role (see [Local development](#local-development), as for dev). Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
-5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`.
+5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN` and `QR_SIGNING_KEY` (any long random string, e.g. from `openssl rand -base64 32`). Dev needs `QR_SIGNING_KEY` set the same way before its next deploy.
 6. **Config.** Create `functions/.env.repair-cafe-prod` with `HUBSPOT_PIPELINE_ID`, `RESTARTERS_STAGE_STATUS` and `ALLOWED_EMAILS` using the live stage ids. Leave out `RESTARTERS_EVENT_ID` so items go on the real session. The live ids can be read with Bruno's pipeline request once the live key is in `api/.env`.
 7. **Deploy:** `npm run deploy:prod`.
 8. **Custom domain.** In the prod project, Hosting → Add custom domain → `repair.rugbyecohub.org`, then add the DNS records it gives at whoever manages rugbyecohub.org. Check the domain is listed under Authentication → Settings → Authorized domains. Job sheet QR codes use the address the page was opened on, so print from the new domain once it's live.
@@ -255,6 +255,7 @@ Keep the risk down while it's shared:
 - Self sign-up is switched off in both Firebase projects (Authentication > Settings > User actions > "Enable create (sign-up)"). Accounts are added by hand in the console.
 - The API also only accepts the accounts listed in `ALLOWED_EMAILS` (in `functions/.env.<project id>`, default `repaircaferugby@gmail.com`). If sign-up is ever switched back on by mistake, a stranger could create an account but would get "Invalid sign-in" from every request. To add a volunteer's own login, add the user in the console, add their email to the list, and deploy the functions.
 - Problem and fix, and Notes, are shared publicly on Restarters. The form says not to include names.
+- Job sheet QR codes carry a ticket key that opens that one ticket without signing in, for 3 hours after printing. See [QR codes](#qr-codes-open-one-ticket-without-signing-in).
 - App Check (blocking scripted requests) isn't set up. It's an option for later.
 
 ### In-person bookings have no date
@@ -332,6 +333,20 @@ With next steps "More time needed" it's coming back. A "Back on" dropdown lists 
 With "Professional help" or "Do it yourself" it isn't coming back. It shows on Done under Needs follow-up, whatever its date, until someone closes it.
 
 It isn't rebooked as a new ticket, because that would add a second Restarters record for the same item and count it twice. The app treats any open stage that syncs as a follow-up stage, so the rule doesn't depend on the stage's name.
+
+### QR codes open one ticket without signing in
+
+When a job sheet is printed, the server issues a ticket key (`POST /api/tickets/:id/key`, signed-in users only) and the QR code links to `/tickets/<id>?key=<key>`. A fixer who scans it can open, edit, save and resync that ticket without signing in, until 3 hours after the sheet was printed (`TICKET_KEY_HOURS` in `functions/src/ticketKey.ts`). The sheet shows the time under the code. Reprinting issues a fresh key.
+
+- The key is `<ticket id>.<expiry>.<signature>`, signed with the `QR_SIGNING_KEY` secret (HMAC-SHA256). Changing the id or expiry breaks the signature.
+- It only allows reading the form's options and upcoming sessions, and reading, saving and resyncing its own ticket. It can't open the list or another ticket, print, issue more keys or remove the item from Restarters.
+- The browser keeps it for that tab only (session storage) and removes it from the address bar.
+- Anyone holding the sheet can open that one item until the key expires. That's the item, the customer's first name and the repair details. After that the QR code goes to the sign-in page.
+- Without `QR_SIGNING_KEY`, sheets print a plain link that needs signing in.
+
+### Saving shows a summary
+
+After a save, the ticket page shows a "Saved" summary (status, fixer, repair details, next steps, and whether it's on Restarters) instead of the form, so it's obvious the job is recorded. "Edit repair" goes back to the form. Signed-in users also get "Back to list". Someone who opened it from a QR code is told they can close the page.
 
 ### Short reference
 

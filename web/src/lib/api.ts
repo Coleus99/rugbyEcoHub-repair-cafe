@@ -1,4 +1,5 @@
 import { auth } from "./firebase";
+import { activeTicketKey } from "./ticketKey";
 
 // Shapes returned by the functions in functions/src/app.ts.
 export type Properties = Record<string, string | null>;
@@ -24,14 +25,17 @@ export class ApiError extends Error {
 }
 
 // fetch for /api routes. Adds the signed-in user's ID token (refreshed by
-// Firebase when it's near expiry) and turns error responses into ApiError.
+// Firebase when it's near expiry), or if nobody is signed in, the ticket
+// key from a scanned QR code. Turns error responses into ApiError.
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = await auth.currentUser?.getIdToken();
+  const idToken = await auth.currentUser?.getIdToken();
+  const key = idToken ? undefined : activeTicketKey();
+  const authorization = idToken ? `Bearer ${idToken}` : key ? `Ticket ${key}` : undefined;
   const res = await fetch(`/api${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authorization ? { Authorization: authorization } : {}),
       ...init.headers,
     },
   }).catch(() => {
@@ -88,6 +92,9 @@ export const syncTicket = (id: string) =>
 
 export const removeFromRestarters = (id: string) =>
   apiFetch<{ ticket: Ticket }>(`/tickets/${id}/restarters`, { method: "DELETE" }).then((r) => r.ticket);
+
+// A key for the job sheet's QR code (null if keys aren't set up).
+export const getTicketKey = (id: string) => apiFetch<{ key: string | null; expires?: number }>(`/tickets/${id}/key`, { method: "POST" }).then((r) => r.key);
 
 // Marks the job sheet as printed, which also checks the visitor in.
 export const markPrinted = (id: string) =>

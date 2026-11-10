@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { QRCodeSVG } from "qrcode.react";
-import { getMeta, getTicket, markPrinted, updateTicket, type Meta, type Option, type Ticket } from "../lib/api";
+import { getMeta, getTicket, getTicketKey, markPrinted, updateTicket, type Meta, type Option, type Ticket } from "../lib/api";
 import { labelFor, needsWeight } from "../lib/ticketForm";
 import { checkInChanges, isReturning } from "../lib/listTab";
+import { keyExpiresAt } from "../lib/ticketKey";
 import { shortRef } from "../lib/search";
 import { formatDate, formatDateTime } from "../lib/format";
 
-type State = { meta?: Meta; ticket?: Ticket; error?: string; printError?: string; checkedIn?: boolean };
+type State = { meta?: Meta; ticket?: Ticket; qrKey?: string | null; error?: string; printError?: string; checkedIn?: boolean };
 
 // Stages that aren't an outcome a fixer would tick on paper.
 const NOT_OUTCOMES = /^(new|in progress|no show)$/i;
@@ -26,8 +27,9 @@ export default function TicketPrint() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getMeta(), getTicket(id)]).then(
-      ([meta, ticket]) => !cancelled && setState({ meta, ticket }),
+    // The QR key is optional: without one, the code just links to the page.
+    Promise.all([getMeta(), getTicket(id), getTicketKey(id).catch(() => null)]).then(
+      ([meta, ticket, qrKey]) => !cancelled && setState({ meta, ticket, qrKey }),
       (err: Error) => !cancelled && setState({ error: err.message }),
     );
     return () => {
@@ -59,12 +61,13 @@ export default function TicketPrint() {
     return () => window.removeEventListener("afterprint", onAfterPrint);
   }, [state.ticket, state.meta, printed, returning]);
 
-  const { meta, ticket, error, printError, checkedIn } = state;
+  const { meta, ticket, qrKey, error, printError, checkedIn } = state;
   if (error) return <p role="alert" className="error">{error}</p>;
   if (!meta || !ticket) return <p>Loading…</p>;
 
   const p = ticket.properties;
-  const url = `${window.location.origin}/tickets/${ticket.id}`;
+  // With a key, scanning opens this ticket without signing in for 3 hours.
+  const url = `${window.location.origin}/tickets/${ticket.id}${qrKey ? `?key=${encodeURIComponent(qrKey)}` : ""}`;
   const outcomes = meta.stages
     .filter((s) => !NOT_OUTCOMES.test(s.label))
     .map((s) => ({ label: s.label, value: s.id }));
@@ -102,7 +105,7 @@ export default function TicketPrint() {
         </div>
         <figure className="qr">
           <QRCodeSVG value={url} size={112} marginSize={1} />
-          <figcaption>Scan to update</figcaption>
+          <figcaption>{qrKey ? `Scan to update. No sign-in needed until ${keyExpiresAt(qrKey)}` : "Scan to update"}</figcaption>
         </figure>
       </header>
 

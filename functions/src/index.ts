@@ -11,6 +11,8 @@ import {parseStageStatus} from "./sync";
 initializeApp();
 const HUBSPOT_TOKEN = defineSecret("HUBSPOT_TOKEN");
 const RESTARTERS_TOKEN = defineSecret("RESTARTERS_TOKEN");
+// Signs the keys in job sheet QR codes. Any long random string.
+const QR_SIGNING_KEY = defineSecret("QR_SIGNING_KEY");
 
 // Non-secret config, set per project in functions/.env.<project id>.
 const HUBSPOT_PIPELINE_ID = defineString("HUBSPOT_PIPELINE_ID");
@@ -39,6 +41,7 @@ const app = createApp({
     stageStatus: parseStageStatus(RESTARTERS_STAGE_STATUS.value()),
     eventIdOverride: RESTARTERS_EVENT_ID.value(),
   }),
+  ticketKeySecret: () => QR_SIGNING_KEY.value(),
   verifyToken: async (token) => {
     const decoded = await getAuth().verifyIdToken(token);
     const allowed = parseEmails(ALLOWED_EMAILS.value());
@@ -55,7 +58,7 @@ const app = createApp({
 export const api = onRequest(
   {
     region: "europe-west2",
-    secrets: [HUBSPOT_TOKEN, RESTARTERS_TOKEN],
+    secrets: [HUBSPOT_TOKEN, RESTARTERS_TOKEN, QR_SIGNING_KEY],
     maxInstances: 2,
   },
   app,

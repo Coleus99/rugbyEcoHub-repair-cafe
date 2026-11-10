@@ -15,6 +15,12 @@ import {
 import {londonDate, type Restarters} from "./restarters";
 import {upcomingSessions, type UpcomingSession} from "./sessions";
 import {
+  keyAllows,
+  signTicketKey,
+  TICKET_KEY_HOURS,
+  verifyTicketKey,
+} from "./ticketKey";
+import {
   removeFromRestarters,
   syncTicket,
   type SyncConfig,
@@ -100,6 +106,8 @@ export type AppDeps = {
   verifyToken: (token: string) => Promise<unknown>;
   metaCacheMs?: number;
   now?: () => Date;
+  // Signs the ticket keys in job sheet QR codes. Blank turns them off.
+  ticketKeySecret?: () => string;
 };
 
 // The group's most recent repair session (Restarters event) up to today.
@@ -138,9 +146,29 @@ export const createApp = (deps: AppDeps) => {
     return value;
   };
 
-  // Every /api route needs a valid Firebase ID token.
+  const nowMs = () => (deps.now?.() ?? new Date()).getTime();
+
+  // Every /api route needs a valid Firebase ID token, or a ticket key from
+  // a job sheet's QR code, which only opens that one ticket.
   app.use(async (req, res, next) => {
     const header = req.headers.authorization ?? "";
+    if (header.startsWith("Ticket ")) {
+      const check = verifyTicketKey(
+        deps.ticketKeySecret?.() ?? "", header.slice(7), nowMs(),
+      );
+      if (!check.ok) {
+        res.status(401).json({error: check.reason === "expired" ?
+          "This QR code has expired. Sign in, or reprint the job sheet." :
+          "This QR code isn't valid. Sign in to open the ticket."});
+        return;
+      }
+      if (!keyAllows(check.ticketId, req.method, req.path)) {
+        res.status(403).json({error: "Sign in to do that."});
+        return;
+      }
+      next();
+      return;
+    }
     const token = header.startsWith("Bearer ") ? header.slice(7) : "";
     if (!token) {
       res.status(401).json({error: "Not signed in"});
@@ -342,6 +370,20 @@ export const createApp = (deps: AppDeps) => {
     const sync = await syncTicket(syncDeps(), ticket);
     if (sync.status !== "Skipped") ticket = await getRepairTicket(deps, id);
     res.json({...(await withName(ticket)), sync});
+  });
+
+  // A key for the job sheet's QR code, so a fixer can open this ticket
+  // by scanning it, without signing in, for the next few hours.
+  app.post("/api/tickets/:id/key", async (req, res) => {
+    const id = req.params.id as string;
+    const secret = deps.ticketKeySecret?.() ?? "";
+    await getRepairTicket(deps, id); // 404 if it isn't a repair ticket
+    if (!secret) {
+      res.json({key: null});
+      return;
+    }
+    const expires = nowMs() + TICKET_KEY_HOURS * 60 * 60 * 1000;
+    res.json({key: signTicketKey(secret, id, expires), expires});
   });
 
   // Record the first time the job sheet is printed. Sheets are printed at

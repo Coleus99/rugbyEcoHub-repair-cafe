@@ -6,6 +6,7 @@ import { shortRef } from "../lib/search";
 import { formatDate } from "../lib/format";
 import { ukDay } from "../lib/done";
 import { rememberedFixer, rememberFixer } from "../lib/deviceFixer";
+import { useAuth } from "../lib/useAuth";
 
 // Matches EDITABLE_PROPERTIES in functions/src/app.ts.
 const FORM_PROPERTIES = ["hs_pipeline_stage", "subject", "content", "restarters_category", "repair_item_type", "repair_item_brand", "repair_item_model", "repair_item_year_made", "repair_item_weight_kg", "repair_problem_and_fix", "repair_spare_parts", "repair_next_steps", "repair_barrier", "repair_notes", "repair_fixer", "requested_repair_date"];
@@ -40,7 +41,7 @@ export default function TicketPage() {
   return <TicketForm key={ticket.id} initial={ticket} meta={meta} sessions={sessions} />;
 }
 
-type Status = { kind: "idle" | "saving" | "saved" | "error"; message?: string };
+type Status = { kind: "idle" | "saving" | "error"; message?: string };
 
 function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; sessions: UpcomingSession[] }) {
   const [ticket, setTicket] = useState(initial);
@@ -58,6 +59,10 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
   const [draft, setDraft] = useState<Draft>(() => toDraft(initial.properties, FORM_PROPERTIES));
   const withFixer = (d: Draft): Draft => (prefilledFixer && !fixerTouched && !d.repair_fixer ? { ...d, repair_fixer: prefilledFixer } : d);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  // After a save, show a summary instead of the form until they choose Edit.
+  const [summary, setSummary] = useState<SyncResult | null>(null);
+  // Not signed in: opened from a job sheet's QR code, for this ticket only.
+  const guest = !useAuth().user;
 
   const changes = changedProperties(ticket.properties, draft);
   const dirty = Object.keys(changes).length > 0;
@@ -115,7 +120,9 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
       setTicket(saved);
       setDraft(toDraft(saved.properties, FORM_PROPERTIES));
       rememberFixer(saved.properties.repair_fixer ?? "");
-      setStatus({ kind: "saved", message: syncMessage(sync) });
+      setStatus({ kind: "idle" });
+      setSummary(sync);
+      window.scrollTo(0, 0);
     } catch (err) {
       setStatus({ kind: "error", message: (err as Error).message });
     }
@@ -137,16 +144,20 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
     </Field>
   );
 
+  if (summary) return <SavedSummary ticket={ticket} meta={meta} sync={summary} guest={guest} onEdit={() => setSummary(null)} />;
+
   return (
     <>
       <form onSubmit={save} className="ticket-form">
-        <nav className="crumbs" aria-label="Breadcrumb">
-          <Link to="/">← Repairs</Link>
-          <span aria-current="page">#{shortRef(ticket.id)}</span>
-        </nav>
+        {!guest && (
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <Link to="/">← Repairs</Link>
+            <span aria-current="page">#{shortRef(ticket.id)}</span>
+          </nav>
+        )}
         <div className="page-title">
           <h1>{p.subject || "Ticket"}</h1>
-          <Link to={`/tickets/${ticket.id}/print`}>{p.repair_printed_at ? "Reprint" : "Print"}</Link>
+          {!guest && <Link to={`/tickets/${ticket.id}/print`}>{p.repair_printed_at ? "Reprint" : "Print"}</Link>}
         </div>
         <p className="muted">
           {ticket.firstName && `${ticket.firstName} · `}
@@ -198,13 +209,12 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
           {area("repair_notes", "Notes", "Also shared publicly on Restarters. No names or contact details.")}
         </fieldset>
 
-        <RestartersPanel ticket={ticket} meta={meta} onChange={setTicket} disabled={dirty} />
+        <RestartersPanel ticket={ticket} meta={meta} onChange={setTicket} disabled={dirty} canRemove={!guest} />
 
         <div className="save-bar">
           <button type="submit" disabled={!dirty || status.kind === "saving"}>
             {status.kind === "saving" ? "Saving…" : "Save"}
           </button>
-          {status.kind === "saved" && <span role="status">Saved to HubSpot{status.message && `. ${status.message}`}</span>}
           {status.kind === "error" && (
             <span role="alert" className="error">
               {status.message}
@@ -217,6 +227,52 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
   );
 }
 
+// Shown after a save, so it's obvious the job is recorded. Edit goes back
+// to the form.
+function SavedSummary({ ticket, meta, sync, guest, onEdit }: { ticket: Ticket; meta: Meta; sync: SyncResult; guest: boolean; onEdit: () => void }) {
+  const p = ticket.properties;
+  const stage = meta.stages.find((s) => s.id === p.hs_pipeline_stage);
+  const label = (name: string) => labelFor(meta.options[name], p[name]);
+  const rows: [string, string | null | undefined][] = [
+    ["Status", stage?.label],
+    ["Fixer", p.repair_fixer],
+    ["Problem and fix", p.repair_problem_and_fix],
+    ["Spare parts", label("repair_spare_parts")],
+    ["Next steps", label("repair_next_steps")],
+    ["Back on", comesBack(p.repair_next_steps) ? (p.requested_repair_date ? formatDate(p.requested_repair_date) : "TBC") : ""],
+    ["Barrier to repair", label("repair_barrier")],
+    ["Notes", p.repair_notes],
+  ];
+  const restarters = sync.status === "Synced" ? `Saved on Restarters (device ${sync.deviceId}).` : sync.status === "Error" ? `Not on Restarters yet: ${sync.error}` : stage?.restartersStatus ? "" : "Not sent to Restarters at this status.";
+
+  return (
+    <section className="saved-summary" aria-live="polite">
+      <p className="saved-tick">Saved</p>
+      <h1>{p.subject || "Ticket"}</h1>
+      <p className="muted">
+        {ticket.firstName && `${ticket.firstName} · `}Ref #{shortRef(ticket.id)}
+      </p>
+      <dl>
+        {rows
+          .filter(([, value]) => value)
+          .map(([name, value]) => (
+            <div key={name}>
+              <dt>{name}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+      </dl>
+      {restarters && <p className={sync.status === "Error" ? "error" : "muted"}>{restarters}</p>}
+      <div className="actions">
+        <button type="button" onClick={onEdit}>
+          Edit repair
+        </button>
+        {guest ? <span className="muted">All done. You can close this page.</span> : <Link to="/">Back to list</Link>}
+      </div>
+    </section>
+  );
+}
+
 // "Needs follow-up", "Repaired", or "Can't repair"
 function quotedList(items: string[]): string {
   const quoted = items.map((i) => `"${i}"`);
@@ -224,15 +280,9 @@ function quotedList(items: string[]): string {
   return `${quoted.slice(0, -1).join(", ")}, or ${quoted.at(-1)}`;
 }
 
-function syncMessage(sync: SyncResult): string {
-  if (sync.status === "Synced") return `Synced to Restarters (device ${sync.deviceId})`;
-  if (sync.status === "Error") return `Restarters sync failed: ${sync.error}`;
-  return "";
-}
-
 // Restarters status for this ticket, with Resync and Remove. Disabled while
 // there are unsaved edits, so it never syncs stale details.
-function RestartersPanel({ ticket, meta, onChange, disabled }: { ticket: Ticket; meta: Meta; onChange: (t: Ticket) => void; disabled: boolean }) {
+function RestartersPanel({ ticket, meta, onChange, disabled, canRemove }: { ticket: Ticket; meta: Meta; onChange: (t: Ticket) => void; disabled: boolean; canRemove: boolean }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const p = ticket.properties;
@@ -278,7 +328,7 @@ function RestartersPanel({ ticket, meta, onChange, disabled }: { ticket: Ticket;
         <button type="button" onClick={resync} disabled={busy || disabled}>
           {busy ? "Working…" : "Resync now"}
         </button>
-        {deviceId && (
+        {deviceId && canRemove && (
           <button type="button" onClick={remove} disabled={busy || disabled}>
             Remove from Restarters
           </button>
