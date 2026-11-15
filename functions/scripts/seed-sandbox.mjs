@@ -56,7 +56,7 @@ const findTicket = async ({ item, brand }) => {
       ? { propertyName: "repair_item_brand", operator: "EQ", value: brand }
       : { propertyName: "repair_item_brand", operator: "NOT_HAS_PROPERTY" },
   ];
-  const data = await hubspot("POST", "/crm/v3/objects/tickets/search", { filterGroups: [{ filters }] });
+  const data = await hubspot("POST", "/crm/objects/2026-09/tickets/search", { filterGroups: [{ filters }] });
   return data.results[0]?.id;
 };
 
@@ -102,7 +102,7 @@ for (const b of bookings) {
     console.log(`created  ${id}  ${b.item}`);
   }
   if (b.then) {
-    await hubspot("PATCH", `/crm/v3/objects/tickets/${id}`, { properties: b.then });
+    await hubspot("PATCH", `/crm/objects/2026-09/tickets/${id}`, { properties: b.then });
     console.log(`         moved on with repair details`);
   }
 }

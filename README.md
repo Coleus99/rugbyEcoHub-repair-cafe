@@ -349,6 +349,12 @@ When a job sheet is printed, the server issues a ticket key (`POST /api/tickets/
 
 After saving a ticket at a closed stage (Repaired, Can't repair, Won't repair, No show), the ticket page shows a "Saved" summary (status, fixer, repair details, next steps, and whether it's on Restarters) instead of the form, so it's obvious the job is finished. Saving at an open stage (In Progress, Needs follow-up) stays on the form with a "Saved" message. "Edit repair" goes back to the form. Signed-in users also get "Back to list". Someone who opened it from a QR code is told they can close the page.
 
+### HubSpot API version: 2026-09
+
+All HubSpot calls (in `functions/src/hubspot.ts`, the seed script and the Bruno requests) use HubSpot's date-based `2026-09` endpoints, e.g. `/crm/objects/2026-09/tickets/{id}`, not the old `/crm/v3/...` and `/crm/v4/...` ones, which HubSpot stops supporting in 2027 (v4 associations from March, the rest from September). See HubSpot's [legacy API migration guide](https://developers.hubspot.com/docs/api-reference/legacy/migration-guide). Request and response shapes are the same as v3/v4.
+
+The exception is the seed script's form submissions (`api.hsforms.com/submissions/v3/integration/submit`), which only fills the sandbox with test bookings. HubSpot has no dated Forms API yet. Switch it when one appears. To check for anything else still on old versions, see Development → Migrations → APIs in HubSpot.
+
 ### Short reference
 
 Each ticket shows a short reference, the last five digits of the HubSpot ticket id (e.g. #67747). It's printed large on the job sheet, shown on the list, and searchable. It's easier to say out loud than the 12-digit id, and it stays the same for the life of the ticket.

@@ -80,7 +80,7 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
       const data = await call<{
         results: Ticket[];
         paging?: {next?: {after: string}};
-      }>("POST", "/crm/v3/objects/tickets/search", {
+      }>("POST", "/crm/objects/2026-09/tickets/search", {
         filterGroups: groups.map((filters) => ({filters})),
         properties,
         sorts: [{propertyName: "createdate", direction: "ASCENDING"}],
@@ -96,14 +96,14 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
 
   return {
     getPipeline: (pipelineId: string) =>
-      call<Pipeline>("GET", `/crm/v3/pipelines/tickets/${pipelineId}`),
+      call<Pipeline>("GET", `/crm/pipelines/2026-09/tickets/${pipelineId}`),
 
     searchTickets: (filters: Filter[], properties: string[]) =>
       search([filters], properties),
 
     countTickets: async (filters: Filter[]) => {
       const data = await call<{total: number}>(
-        "POST", "/crm/v3/objects/tickets/search",
+        "POST", "/crm/objects/2026-09/tickets/search",
         {filterGroups: [{filters}], properties: ["hs_object_id"], limit: 1},
       );
       return data.total;
@@ -117,7 +117,7 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
       for (const ids of chunks(ticketIds)) {
         const links = await call<{
           results: {from: {id: string}; to: {toObjectId: number}[]}[];
-        }>("POST", "/crm/v4/associations/tickets/contacts/batch/read", {
+        }>("POST", "/crm/associations/2026-09/tickets/contacts/batch/read", {
           inputs: ids.map((id) => ({id})),
         });
         for (const r of links.results) {
@@ -129,7 +129,7 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
       for (const ids of chunks([...new Set(Object.values(contactOf))])) {
         const contacts = await call<{results: Ticket[]}>(
           "POST",
-          "/crm/v3/objects/contacts/batch/read",
+          "/crm/objects/2026-09/contacts/batch/read",
           {properties: ["firstname"], inputs: ids.map((id) => ({id}))},
         );
         for (const c of contacts.results) {
@@ -147,14 +147,14 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
     getTicket: (id: string, properties: string[]) =>
       call<Ticket>(
         "GET",
-        `/crm/v3/objects/tickets/${encodeURIComponent(id)}` +
+        `/crm/objects/2026-09/tickets/${encodeURIComponent(id)}` +
           `?properties=${properties.join(",")}`,
       ),
 
     updateTicket: (id: string, properties: Properties) =>
       call<Ticket>(
         "PATCH",
-        `/crm/v3/objects/tickets/${encodeURIComponent(id)}`,
+        `/crm/objects/2026-09/tickets/${encodeURIComponent(id)}`,
         {properties},
       ),
 
@@ -162,7 +162,7 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
     getPropertyOptions: async (names: string[]) => {
       const data = await call<{
         results: {name: string; options: PropertyOption[]}[];
-      }>("POST", "/crm/v3/properties/tickets/batch/read", {
+      }>("POST", "/crm/properties/2026-09/tickets/batch/read", {
         archived: false,
         inputs: names.map((name) => ({name})),
       });

@@ -18,7 +18,7 @@ describe("HubSpot client", () => {
     expect(ticket.properties.subject).toBe("Toaster");
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe(
-      "https://api.hubapi.com/crm/v3/objects/tickets/448850507989" +
+      "https://api.hubapi.com/crm/objects/2026-09/tickets/448850507989" +
         "?properties=subject",
     );
     expect(init?.method).toBe("GET");
