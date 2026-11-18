@@ -42,13 +42,9 @@ export default function TicketList() {
     };
   }, [reloads]);
 
-  // Completed tickets are fetched the first time they're needed (opening
-  // Done, or searching, which covers all three tabs), and again on Refresh.
-  const searching = !!query.trim() || !!category;
-  const [wantCompleted, setWantCompleted] = useState(false);
-  if ((tab === "done" || searching) && !wantCompleted) setWantCompleted(true);
+  // Completed tickets load on open and on Refresh, separately so the open
+  // list doesn't wait. The category filter needs them straight away.
   useEffect(() => {
-    if (!wantCompleted) return;
     let cancelled = false;
     getCompletedTickets().then(
       ({ tickets, days, session }) => !cancelled && setCompleted({ tickets, days, session }),
@@ -57,7 +53,7 @@ export default function TicketList() {
     return () => {
       cancelled = true;
     };
-  }, [wantCompleted, reloads]);
+  }, [reloads]);
 
   const { meta, tickets, failedSyncs, error } = state;
   const refresh = () => {
