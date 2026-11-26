@@ -22,6 +22,14 @@ describe("matchesSearch", () => {
     expect(matchesSearch(lamp, "amp", "")).toBe(false);
   });
 
+  it("matches the queue number exactly", () => {
+    const numbered: Ticket = { ...lamp, properties: { ...lamp.properties, repair_queue_number: "7" } };
+    expect(matchesSearch(numbered, "7", "")).toBe(true);
+    expect(matchesSearch(numbered, "no.7", "")).toBe(true);
+    expect(matchesSearch(numbered, "8", "")).toBe(false);
+    expect(matchesSearch(lamp, "7", "")).toBe(false);
+  });
+
   it("matches the first name, and item and name together", () => {
     expect(matchesSearch(lamp, "pri", "")).toBe(true);
     expect(matchesSearch(lamp, "priya lamp", "")).toBe(true);

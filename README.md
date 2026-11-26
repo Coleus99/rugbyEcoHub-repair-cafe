@@ -87,8 +87,10 @@ The live portal already has a repair form that creates tickets. The new form kee
 | Spare parts | `repair_spare_parts` | `spare_parts` | **New** |
 | Next steps | `repair_next_steps` | `next_steps` | **New** |
 | Barrier | `repair_barrier` | `barrier` | **New** |
-| Fixer | `repair_fixer` (dropdown, current fixer) and `repair_fixers` (text, everyone assigned so far, added to by the app) | none | **New** (sandbox 8 November 2026, via `api/hubspot/create-fixer-properties.bru`). Add or remove fixers by editing the `repair_fixer` options in HubSpot. No code change is needed. Each device remembers the last fixer saved on it (browser storage only) and fills it in on a ticket with no fixer as soon as another field is edited (not on open, so viewing or printing changes nothing). |
-| Job sheet printed | `repair_printed_at` (date and time) | none | **New** (sandbox 9 November 2026, via `api/hubspot/create-printed-property.bru`). Set by the app the first time the job sheet is printed. Reprints keep the first time. See [Check-in](#check-in-printing-the-job-sheet). |
+| Fixer | `repair_fixer` (dropdown, current fixer) and `repair_fixers` (text, everyone assigned so far, added to by the app) | none | **New** (sandbox 8 November 2026, via `api/hubspot/create-fixer-properties.bru`). Fixer lists show the volunteers confirmed on Restarters for today's session (or the next one) first, then the HubSpot options. Saving a signed-up volunteer who isn't an option yet adds them to the options. A HubSpot option like "Martin B" is matched to "Martin Bryant" on Restarters, so the existing option is used. Other fixers are still added by editing the `repair_fixer` options in HubSpot. The device's "I am" choice (browser storage only) drives Only mine and Take it, and is filled in on a ticket with no fixer as soon as another field is edited (not on open, so viewing or printing changes nothing). |
+| Fixer attachments | `repair_item_fixer_attachments` (file, HubSpot file ids separated by `;`) | none | **New** (sandbox 21 November 2026, made in the HubSpot UI). Optional photos or PDFs added on the ticket page. They upload straight away, separately from Save, as private files in the file manager under `/repair-cafe/fixer-attachments/<ticket id>`. Photos are shrunk to 2000px on the long side first. Limit 10 MB and 10 files a ticket. Remove takes the file off the ticket but leaves it in the file manager. Not sent to Restarters. Needs the key's `files` scope. |
+| Checked in | `repair_checked_in_at` (date and time) and `repair_queue_number` (number) | none | **New** (sandbox 22 November 2026, via `api/hubspot/create-checkin-properties.bru`). Set by the app at check-in. The number is the place in that day's queue and restarts at 1 each session. See [Check-in](#check-in-queue-number-and-optional-job-sheet). |
+| Job sheet printed | `repair_printed_at` (date and time) | none | **New** (sandbox 9 November 2026, via `api/hubspot/create-printed-property.bru`). Set by the app the first time the job sheet is printed. Reprints keep the first time. See [Check-in](#check-in-queue-number-and-optional-job-sheet). |
 | Restarters ids | `restarters_device_id`, `restarters_event_id` | returned `id`, `eventid` | **New** |
 | Sync status | `restarters_sync_status`, `restarters_sync_error` | none | **New** (sandbox 8 November 2026, via `api/hubspot/create-sync-properties.bru`). Set by the app. Options: Not synced, Synced, Error. |
 
@@ -134,8 +136,8 @@ The app lists tickets in the Open stages and reads stage names and open/closed f
 
 Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 
-1. **Live HubSpot key.** Create the service key in the live portal with ticket read/write, `crm.objects.contacts.read`, `crm.schemas.tickets.write` (to create the properties) and forms read.
-2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties`, `create-fixer-properties` and `create-printed-property`. Relabel the old properties as "Legacy: …".
+1. **Live HubSpot key.** Create the service key in the live portal with ticket read/write, `crm.objects.contacts.read`, `crm.schemas.tickets.write` (to create the properties), `files` (for fixer attachments) and forms read. The sandbox key needs `files` added too.
+2. **Live properties.** Run the Bruno requests against live: `create-ticket-property-group`, `create-ticket-properties`, `create-sync-properties`, `create-fixer-properties`, `create-printed-property` and `create-checkin-properties`. Create `repair_item_fixer_attachments` in the `repair_cafe_info` group as a File property, as in the sandbox. Relabel the old properties as "Legacy: …".
 3. **Live pipeline.** Set up the stages to match the sandbox (New, In Progress, Needs follow-up, Repaired, Can't repair, Won't repair, No show), with Repaired, Can't repair, Won't repair and No show marked **Closed**. Point both booking forms (online and in-person) at it.
 4. **Firebase prod project.** Upgrade `repair-cafe-prod` to Blaze with a budget alert. Give its default compute service account the Cloud Build role (see [Local development](#local-development), as for dev). Turn on Email/Password sign-in and add the user `repaircaferugby@gmail.com`.
 5. **Secrets:** `firebase functions:secrets:set HUBSPOT_TOKEN --project prod`, then the same for `RESTARTERS_TOKEN`. `QR_SIGNING_KEY` is created by `npm run deploy:prod` the first time.
@@ -143,6 +145,7 @@ Do these in order. Steps 1 to 5 are in HubSpot and Firebase, not code.
 7. **Deploy:** `npm run deploy:prod`.
 8. **Custom domain.** In the prod project, Hosting → Add custom domain → `repair.rugbyecohub.org`, then add the DNS records it gives at whoever manages rugbyecohub.org. Check the domain is listed under Authentication → Settings → Authorized domains. Job sheet QR codes use the address the page was opened on, so print from the new domain once it's live.
 9. **Check:** sign in at `repair.rugbyecohub.org`, open a real ticket, print it, scan the QR code on a phone, then sync one item and check it appears on that session's Restarters event.
+10. **Front desk.** Ask fixers to sign up for each session on Restarters, so they appear under I am. Put a whiteboard by the desk with columns for number, item and fixer.
 
 ## Local development
 
@@ -298,27 +301,31 @@ Searching the Done tab covers everything completed in the last 90 days (`GET /ap
 
 If someone brings an item back later, it's booked as a new repair. That's fine for the stats, since it's been saved from landfill twice. Email search isn't supported, on purpose, to keep contact details out of the app.
 
-### Check-in: printing the job sheet
+### Check-in: queue number and optional job sheet
 
-Reception prints a job sheet when someone arrives, and that print is the check-in. The app records the first print time in `repair_printed_at` after the print dialog closes (from the Print button or Ctrl/Cmd+P). Cancelling the dialog still counts, because browsers don't say whether the page was actually printed.
+Printing was the slowest part of the front desk at the 21 November test, and the printer needed a restart once. So printing is optional. Reception presses **Check in** when someone arrives (`POST /api/tickets/:id/checkin`). That sets `repair_checked_in_at` and gives the item the next number in today's queue, which the host writes on the whiteboard and tells the visitor. The number restarts at 1 each day because it counts only that day's check-ins. It stays on the ticket, so it's always read with the check-in date: the app shows "7" for today and "No. 7 · Sat 21 Nov" for an earlier session. Two hosts checking in during the same second could get the same number. That's rare, and the whiteboard sorts it out.
+
+Printing a job sheet still works and also checks in. The Print button checks in first, so the number is on the sheet, then opens the print dialog. Ctrl/Cmd+P checks in when the dialog closes, so that sheet has no number. Cancelling the dialog still counts, because browsers don't say whether the page was actually printed. The first print also sets `repair_printed_at`. Tickets printed before check-in existed count as checked in.
 
 The list has three tabs:
 
-- **To print**, for reception, in two groups:
-  - **Today:** new bookings with no print time for today or earlier, or with no date (in-person bookings), plus returning "More time needed" items booked for today or earlier. Anything still here at the end of the session is a no-show.
+- **Check in**, for reception, in two groups:
+  - **Today:** bookings not yet checked in for today or earlier, or with no date (in-person bookings), plus returning "More time needed" items booked for today or earlier. Anything still here at the end of the session is a no-show.
   - **Upcoming sessions:** the same for later sessions, soonest first, so someone who turns up early is still found. Returning items with no session chosen come last, as "Back on TBC".
 
-  Returning items are labelled Returning and have Reprint. Reprinting one checks it back in: it moves to New with no fixer and shows on Repairs as "Assign fixer", the same as a new arrival. "Worked on by" keeps the earlier fixers.
-- **Repairs**, for fixers. Everything else that's open, grouped by stage, apart from returning "More time needed" items, which wait on To print. Cards say Reprint rather than Print. Each card has a fixer dropdown ("Assign fixer" when there's none, "Unassigned" to clear one), so the host can assign items without opening them. Picking a name saves straight away. An item still at New moves to In Progress at the same time, and choosing Unassigned moves an In Progress item back to New. The assignment is added to "Worked on by" like any other.
+  Each card has a tick box, **Check in**, and Print sheet. Tick several to use **Check in selected** or **Print selected** (one A4 page each). Returning items are labelled Returning. Checking one in gives it a new number, moves it to New with no fixer, and shows it on Repairs like a new arrival. "Worked on by" keeps the earlier fixers.
+- **Repairs**, for fixers. Everything else that's open, grouped by stage, with today's queue first in number order. Each card has a fixer dropdown ("Assign fixer" when there's none, "Unassigned" to clear one). If the device knows who's using it (**I am** in the header), unassigned cards also have **Take it**, and **Only mine** shows just that fixer's items. Picking a name saves straight away. An item still at New moves to In Progress at the same time, and choosing Unassigned moves an In Progress item back to New. The assignment is added to "Worked on by" like any other.
 - **Done**, for checking a session reached Restarters. One list under "Latest session, Sat 21 Nov (8 of 9 on Restarters)", with Repaired first, then a "Not repaired" heading with each other stage as a subheading in board order: Needs follow-up (outside the repair cafe), Can't repair, Won't repair, No show. Needs follow-up items marked "Professional help" or "Do it yourself" are here whatever their date, showing their next step, since the cafe has finished with them. The latest session is group 116's most recent Restarters event up to today, returned with the completed list. Anything completed on or after its date counts as part of it. If Restarters can't be reached, it falls back to the most recent day anything was completed. Sync errors from any day are included. Items whose sync failed stay in their stage group with a "Sync error" label and the reason. When there are any, the tab says "Done (9) · 3 errors", and a row at the top says "3 errors: these items haven't synced to Restarters" with a "Show only errors" checkbox. Searching covers everything completed in the last 90 days. Won't repair and No show don't sync, so they aren't counted.
+
+Search also finds an item by its queue number ("7" or "No.7").
 
 On the ticket page, Status and Fixer are the first row of the Repair group, so a fixer picking an item up sets both together, and the outcome sits right above the repair write-up.
 
-A ticket moved past New counts as checked in even if its sheet was never printed, so fixers can't lose it. Each device remembers its last tab in browser storage, so the reception laptop opens on To print and the fixers' tablets on Repairs. This replaced an earlier idea of disabling the Print button after use with a "print again" link.
+A ticket moved past New counts as checked in even if nobody pressed Check in, so fixers can't lose it. Each device remembers its last tab and Only mine in browser storage, so the reception laptop opens on Check in and the fixers' phones on Repairs.
 
-If the repair cafe goes paperless later, check-in still needs something printed: a small label (e.g. a Dymo label) with the short reference, and perhaps the QR code, to stick on the item. The same rule then applies to the label. Printing it sets `repair_printed_at` and moves the ticket to Repairs, so the tabs don't change. Fixers would write the repair up in the app instead of on the sheet. A label page would be a new print layout alongside the A4 sheet, sized to the label roll.
+Fixers all use the shared password. **I am** lists the volunteers confirmed on Restarters for today's session (or the next one if there's none today), from `GET /api/events/{id}/volunteers` with the host token, then the HubSpot Fixer options. Ask fixers to sign up for each session on Restarters so they're listed. Only names are read from Restarters, not emails.
 
-The booking confirmation email doesn't include the reference. It says to report to reception for a ticket number, so the printed sheet is the first time the visitor sees it. Suggested wording for the email in HubSpot: "When you arrive, please go to reception. We'll print a job sheet for your item and give you its 5-digit ticket number." The reference is the last 5 digits of the HubSpot ticket id, so it's digits, not letters.
+The booking confirmation email doesn't include the reference. Suggested wording for the email in HubSpot: "When you arrive, please go to reception, where we'll give you a number for the queue."
 
 ### Closing after the session: dated to the session
 

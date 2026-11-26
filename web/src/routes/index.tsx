@@ -16,6 +16,8 @@ export const router = createBrowserRouter([
     children: [
       // The print view has no header, so it sits outside Layout.
       { path: "/tickets/:id/print", element: <TicketPrint /> },
+      // Several job sheets at once: /print?ids=1,2,3
+      { path: "/print", element: <TicketPrint /> },
       {
         element: <Layout />,
         children: [

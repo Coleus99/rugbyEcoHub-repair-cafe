@@ -34,13 +34,17 @@ export const verifyTicketKey = (
   return {ok: true, ticketId: id};
 };
 
-// What a ticket key may do: read the form's options, and read, save and
-// resync its own ticket. Not the list, other tickets, printing or removing
-// the item from Restarters.
+// What a ticket key may do: read the form's options, read, save and
+// resync its own ticket, and add or remove its attachments. Not the list,
+// other tickets, printing or removing the item from Restarters.
 export const keyAllows = (ticketId: string, method: string, path: string) => {
   if (method === "GET" && (path === "/api/meta" ||
     path === "/api/sessions/upcoming")) return true;
   const own = `/api/tickets/${ticketId}`;
   if (path === own) return method === "GET" || method === "PATCH";
+  if (path === `${own}/attachments`) {
+    return method === "GET" || method === "POST";
+  }
+  if (path.startsWith(`${own}/attachments/`)) return method === "DELETE";
   return path === `${own}/sync` && method === "POST";
 };

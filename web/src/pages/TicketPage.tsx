@@ -1,12 +1,15 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
-import { getMeta, getTicket, getUpcomingSessions, removeFromRestarters, syncTicket, updateTicket, type Meta, type Option, type UpcomingSession, type SyncResult, type Ticket } from "../lib/api";
+import { addAttachment, fixersOf, getAttachments, getMeta, getTicket, getUpcomingSessions, removeAttachment, removeFromRestarters, syncTicket, updateTicket, type Attachment, type Meta, type Option, type UpcomingSession, type SyncResult, type Ticket } from "../lib/api";
 import { bookingLabel, changedProperties, comesBack, rebookDate, itemTypeFromCategory, labelFor, needsWeight, outcomeFields, toDraft, type Draft } from "../lib/ticketForm";
 import { shortRef } from "../lib/search";
 import { formatDate } from "../lib/format";
 import { ukDay } from "../lib/done";
 import { rememberedFixer, rememberFixer } from "../lib/deviceFixer";
 import { useAuth } from "../lib/useAuth";
+import { isImage, MAX_BYTES, prepareUpload } from "../lib/attachments";
+import { queueLabel } from "../lib/listTab";
+import FixerOptions from "./FixerOptions";
 
 // Matches EDITABLE_PROPERTIES in functions/src/app.ts.
 const FORM_PROPERTIES = ["hs_pipeline_stage", "subject", "content", "restarters_category", "repair_item_type", "repair_item_brand", "repair_item_model", "repair_item_year_made", "repair_item_weight_kg", "repair_problem_and_fix", "repair_spare_parts", "repair_next_steps", "repair_barrier", "repair_notes", "repair_fixer", "requested_repair_date"];
@@ -50,7 +53,7 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
   // field, not on open, so just viewing or printing a ticket changes nothing.
   const [prefilledFixer] = useState(() => {
     const name = rememberedFixer();
-    const known = meta.options.repair_fixer?.some((o) => o.value === name);
+    const known = fixersOf(meta).some((o) => o.value === name);
     return !initial.properties.repair_fixer && known ? name : "";
   });
   // Once they've used the Fixer dropdown themselves (even to clear it),
@@ -68,6 +71,8 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
   const changes = changedProperties(ticket.properties, draft);
   const dirty = Object.keys(changes).length > 0;
   const p = ticket.properties;
+  // "7" today, or "No. 7 · Sat 21 Nov" from an earlier session.
+  const queue = queueLabel(ticket, ukDay(new Date().toISOString()));
 
   const set = (name: string, value: string) => {
     if (name === "repair_fixer") setFixerTouched(true);
@@ -166,6 +171,7 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
           {!guest && <Link to={`/tickets/${ticket.id}/print`}>{p.repair_printed_at ? "Reprint" : "Print"}</Link>}
         </div>
         <p className="muted">
+          {queue && <strong className="queue-inline">{/^\d+$/.test(queue) ? `No. ${queue}` : queue} · </strong>}
           {ticket.firstName && `${ticket.firstName} · `}
           Ref #{shortRef(ticket.id)}
           {bookingLabel(p) && ` · ${bookingLabel(p)}`}
@@ -198,7 +204,12 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
               <Select value={draft.hs_pipeline_stage} options={meta.stages.map((s) => ({ label: s.label, value: s.id }))} onChange={setStage} required />
             </Field>
             <Field label="Fixer" hint={[prefilledFixer && draft.repair_fixer === prefilledFixer && !p.repair_fixer && "Filled in from this device", p.repair_fixers && `Worked on by ${p.repair_fixers}`].filter(Boolean).join(". ") || undefined}>
-              <Select value={draft.repair_fixer} options={meta.options.repair_fixer ?? []} onChange={(v) => set("repair_fixer", v)} />
+              <select value={draft.repair_fixer} onChange={(e) => set("repair_fixer", e.target.value)}>
+                <option value="">Choose…</option>
+                {/* Keep a name that's no longer listed, so it isn't lost on save. */}
+                {draft.repair_fixer && !fixersOf(meta).some((f) => f.value === draft.repair_fixer) && <option value={draft.repair_fixer}>{draft.repair_fixer}</option>}
+                <FixerOptions fixers={fixersOf(meta)} />
+              </select>
             </Field>
           </div>
           {area("repair_problem_and_fix", "Problem and fix", "What was wrong and what you did. Shared publicly on Restarters, so don't include names.")}
@@ -213,6 +224,7 @@ function TicketForm({ initial, meta, sessions }: { initial: Ticket; meta: Meta; 
           )}
           {show.barrier && select("repair_barrier", "Barrier to repair", meta.options.repair_barrier ?? [])}
           {area("repair_notes", "Notes", "Also shared publicly on Restarters. No names or contact details.")}
+          <Attachments ticket={ticket} onChange={setTicket} />
         </fieldset>
 
         <RestartersPanel ticket={ticket} meta={meta} onChange={setTicket} disabled={dirty} canRemove={!guest} />
@@ -349,6 +361,112 @@ function RestartersPanel({ ticket, meta, onChange, disabled, canRemove }: { tick
       </div>
       {message && <p role="status">{message}</p>}
     </fieldset>
+  );
+}
+
+// Optional photos or documents from the fixer, e.g. the fault or a part
+// number. They upload as soon as they're chosen, separately from Save, and
+// stay private in HubSpot. They aren't sent to Restarters.
+function Attachments({ ticket, onChange }: { ticket: Ticket; onChange: (t: Ticket) => void }) {
+  const ids = ticket.properties.repair_item_fixer_attachments ?? "";
+  const [loaded, setLoaded] = useState<{ ids: string; files: Attachment[] }>();
+  // Only show a list loaded for the current ids.
+  const files = !ids ? [] : loaded?.ids === ids ? loaded.files : undefined;
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  // Reload the list (and fresh view links) whenever the ids change.
+  useEffect(() => {
+    let cancelled = false;
+    if (!ids) return;
+    getAttachments(ticket.id).then(
+      (list) => !cancelled && setLoaded({ ids, files: list }),
+      (err: Error) => !cancelled && setError(err.message),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [ticket.id, ids]);
+
+  const add = async (chosen: FileList | null) => {
+    if (!chosen?.length) return;
+    setError("");
+    const list = [...chosen];
+    try {
+      for (const [i, file] of list.entries()) {
+        setBusy(list.length > 1 ? `Uploading ${i + 1} of ${list.length}…` : "Uploading…");
+        const upload = await prepareUpload(file);
+        if (upload.blob.size > MAX_BYTES) throw new Error(`${file.name} is too big. The limit is 10 MB.`);
+        onChange(await addAttachment(ticket.id, upload.blob, upload.name));
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const remove = async (file: Attachment) => {
+    if (!confirm(`Remove ${file.name} from this ticket?`)) return;
+    setError("");
+    setBusy("Removing…");
+    try {
+      onChange(await removeAttachment(ticket.id, file.id));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy("");
+    }
+  };
+
+  return (
+    <div className="field attachments">
+      <span>
+        Attachments <span className="muted">(optional)</span>
+      </span>
+      {ids && !files && !error && <p className="muted">Loading attachments…</p>}
+      {files && files.length > 0 && (
+        <ul className="attachment-list">
+          {files.map((f) => (
+            <li key={f.id}>
+              <a href={f.url} target="_blank" rel="noreferrer">
+                {isImage(f.extension, f.type) ? <img src={f.url} alt="" /> : <span className="file-icon" aria-hidden="true">{(f.extension ?? "file").toUpperCase()}</span>}
+                <span className="attachment-name">{f.name}</span>
+              </a>
+              <button type="button" onClick={() => remove(f)} disabled={!!busy} aria-label={`Remove ${f.name}`}>
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <label className={busy ? "file-pick busy" : "file-pick"}>
+        <input
+          type="file"
+          multiple
+          accept="image/*,application/pdf"
+          disabled={!!busy}
+          onChange={(e) => {
+            add(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        {busy ? (
+          <>
+            <span className="spinner" aria-hidden="true" />
+            {busy}
+          </>
+        ) : (
+          "Add photo or file"
+        )}
+      </label>
+      <small className="muted">Photos of the fault, a part number or a receipt. Saved straight away and kept private in HubSpot. Not sent to Restarters.</small>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

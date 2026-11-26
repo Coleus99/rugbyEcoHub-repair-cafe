@@ -597,3 +597,262 @@ fieldset.group-repair {
     gap: 1rem;
   }
 }
+
+/* Spinner for buttons that are waiting on the server. */
+.spinner {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.4em;
+  vertical-align: -0.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2s;
+  }
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+/* To print: tick boxes to print several job sheets at once. */
+.print-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.print-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.print-group-title input,
+.ticket-select input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.ticket-card .ticket-select {
+  display: flex;
+  align-items: center;
+  padding: 0 0 0 0.75rem;
+  cursor: pointer;
+}
+
+.ticket-card.selected {
+  border-color: var(--accent);
+}
+
+/* Each job sheet on its own page. */
+.job-sheet + .job-sheet {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 2px dashed var(--border);
+}
+
+@media print {
+  .job-sheet + .job-sheet {
+    break-before: page;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+}
+
+/* Fixer attachments on the ticket form. */
+.attachments {
+  .attachment-list {
+    list-style: none;
+    margin: 0.25rem 0 0.5rem;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+
+  li a {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  img,
+  .file-icon {
+    flex: none;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  .file-icon {
+    display: grid;
+    place-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .attachment-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-pick {
+    position: relative;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5em 1em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .file-pick:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .file-pick.busy {
+    cursor: progress;
+    color: var(--muted);
+  }
+
+  /* Hidden but still focusable through its label. */
+  .file-pick input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+}
+
+/* "I am…" in the header. */
+.currentUserWrapper {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.me-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  select {
+    max-width: 12rem;
+    padding: 0.35em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    font-weight: 600;
+  }
+}
+
+/* Queue number from check-in, for matching the whiteboard. */
+.queue-no {
+  display: inline-block;
+  min-width: 2em;
+  margin-right: 0.5rem;
+  padding: 0.05em 0.4em;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 1.1em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-no.old {
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.queue-inline {
+  color: var(--text);
+}
+
+.print-queue {
+  margin-right: 0.75rem;
+  padding: 0 0.3em;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+}
+
+/* Confirmation after checking in, e.g. "Checked in as number 7". */
+.notice {
+  padding: 0.6rem 0.9rem;
+  border: 2px solid var(--group-repair-border);
+  border-radius: 8px;
+  background: var(--group-repair);
+  font-weight: 600;
+}
+
+button.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mine-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+
+  input {
+    width: 1.2rem;
+    height: 1.2rem;
+    accent-color: var(--accent);
+  }
+}
+
+.ticket-card .ticket-actions .primary {
+  white-space: nowrap;
+}

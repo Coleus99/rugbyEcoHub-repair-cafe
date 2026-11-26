@@ -1,0 +1,38 @@
+meta {
+  name: Create check-in properties
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{hubspotBase}}/crm/properties/2026-09/tickets/batch/create
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "inputs": [
+      {
+        "name": "repair_checked_in_at",
+        "label": "Repair Checked In At",
+        "type": "datetime",
+        "fieldType": "date",
+        "groupName": "repair_cafe_info",
+        "description": "When the visitor was last checked in at reception, with or without a printed job sheet. A returning item gets a new time at each session. Set by the app."
+      },
+      {
+        "name": "repair_queue_number",
+        "label": "Repair Queue Number",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "repair_cafe_info",
+        "description": "Place in the queue on the day it was checked in (1, 2, 3...). Restarts at 1 each session, so read it with Repair Checked In At. Set by the app."
+      }
+    ]
+  }
+}
+
+docs {
+  Run once per portal (sandbox done 22 November 2026, live still to do).
+}

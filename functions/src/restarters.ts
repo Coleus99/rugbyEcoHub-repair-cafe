@@ -1,11 +1,17 @@
 // Restarters API v2 calls for devices and events.
 // See docs/restarters_api/README.md for the quirks handled here.
 
-const BASE = "https://restarters.net/api/v2";
+const ROOT = "https://restarters.net";
+const BASE = `${ROOT}/api/v2`;
 
 export type RepairStatus = "Fixed" | "Repairable" | "End of life";
 export type DeviceFields = Record<string, string>;
 export type RestartersEvent = {id: number; start: string; title: string};
+type EventVolunteer = {
+  confirmed?: boolean;
+  full_name?: string | null;
+  volunteer?: {name?: string | null} | null;
+};
 
 /** An error response from Restarters, with a readable message. */
 export class RestartersError extends Error {
@@ -28,7 +34,9 @@ export const createRestarters = (token: string, fetchFn = fetch) => {
     body?: FormData | URLSearchParams,
   ): Promise<T> => {
     const sep = path.includes("?") ? "&" : "?";
-    const url = `${BASE}${path}${sep}api_token=${encodeURIComponent(token)}`;
+    // Paths starting /api/ are older routes outside v2.
+    const base = path.startsWith("/api/") ? ROOT : BASE;
+    const url = `${base}${path}${sep}api_token=${encodeURIComponent(token)}`;
     const res = await fetchFn(url, {
       method,
       headers: {Accept: "application/json"},
@@ -67,6 +75,20 @@ export const createRestarters = (token: string, fetchFn = fetch) => {
       return past[0];
     },
 
+    // Names of the people who've confirmed they're volunteering at an event.
+    // Signed-up users have volunteer.name. People added by name only have
+    // full_name. Only names are kept: no emails or skills.
+    eventVolunteers: async (eventId: number) => {
+      const data = await call<{volunteers?: EventVolunteer[]}>(
+        "GET", `/api/events/${eventId}/volunteers`,
+      );
+      const names = (data.volunteers ?? [])
+        .filter((v) => v.confirmed)
+        .map((v) => (v.volunteer?.name || v.full_name || "").trim())
+        .filter(Boolean);
+      return [...new Set(names)];
+    },
+
     // Create needs multipart. The new id is the top-level id.
     createDevice: async (fields: DeviceFields) => {
       const form = new FormData();
@@ -97,3 +119,14 @@ const errorMessage = (res: Response, data: unknown) => {
 // The calendar date in the UK, as YYYY-MM-DD.
 export const londonDate = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", {timeZone: "Europe/London"}).format(d);
+
+// Midnight at the start of a London day ("2026-11-21"), in ms. Uses the
+// UK offset at midday, which is right except for the hour after a clock
+// change at 1am, when nobody is checking items in.
+export const londonMidnight = (date: string) => {
+  const [y, m, d] = date.split("-").map(Number);
+  const hour = Number(new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", hour: "numeric", hourCycle: "h23",
+  }).format(new Date(Date.UTC(y, m - 1, d, 12))));
+  return Date.UTC(y, m - 1, d) - (hour - 12) * 60 * 60 * 1000;
+};

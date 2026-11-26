@@ -1,3 +1,5 @@
+import {readFileSync} from "node:fs";
+import {resolve} from "node:path";
 import {describe, expect, it, vi} from "vitest";
 import {
   createRestarters,
@@ -8,7 +10,23 @@ import {
 const respond = (status: number, body: unknown) =>
   vi.fn<typeof fetch>(async () => Response.json(body, {status}));
 
+// Shape saved from the real API on 22 November 2026, with made-up people.
+const VOLUNTEERS = JSON.parse(readFileSync(resolve(__dirname,
+  "../../../docs/restarters_api/getEventVolunteersResponse.json"), "utf8"));
+
 describe("Restarters client", () => {
+  it("lists confirmed volunteers' names only, from the older route",
+    async () => {
+      const fetchFn = respond(200, VOLUNTEERS);
+      const restarters = createRestarters("tok", fetchFn);
+
+      const names = await restarters.eventVolunteers(19169);
+
+      expect(names).toEqual(["Alex Example", "Sam Sample", "Jo Walkin"]);
+      expect(fetchFn.mock.calls[0][0])
+        .toBe("https://restarters.net/api/events/19169/volunteers?api_token=tok");
+    });
+
   it("creates a device with multipart and returns the top-level id",
     async () => {
       const fetchFn = respond(200, {id: 253142, device: {}, stats: {}});

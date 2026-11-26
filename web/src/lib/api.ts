@@ -14,7 +14,17 @@ export type Stage = { id: string; label: string; open: boolean; restartersStatus
 export type Option = { label: string; value: string };
 // The latest repair session (Restarters event) up to today.
 export type Session = { id: number; date: string; start: string; title: string };
-export type Meta = { stages: Stage[]; options: Record<string, Option[]> };
+// signedUp: confirmed on Restarters for today's (or the next) session.
+export type Fixer = Option & { signedUp: boolean };
+export type Meta = { stages: Stage[]; options: Record<string, Option[]>; fixers?: Fixer[] };
+
+// Everyone who can be picked as a fixer. Older servers only send options.
+// The server sorts meta.fixers. The fallback (an older server) is sorted here.
+export const fixersOf = (meta: Meta): Fixer[] =>
+  meta.fixers ??
+  (meta.options.repair_fixer ?? [])
+    .map((o) => ({ ...o, signedUp: false }))
+    .sort((a, b) => a.label.localeCompare(b.label, "en-GB", { sensitivity: "base" }));
 
 export class ApiError extends Error {
   status: number;
@@ -49,12 +59,21 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 // Stages and dropdown options hardly change, so fetch them once per page load.
+// fresh (the list's Refresh button) asks the server to skip its cache too,
+// so a late Restarters sign-up shows straight away. Anything showing the
+// fixer list hears "repairCafe:meta" and updates.
 let metaPromise: Promise<Meta> | undefined;
-export function getMeta(): Promise<Meta> {
-  metaPromise ??= apiFetch<Meta>("/meta").catch((err) => {
-    metaPromise = undefined; // let the next call retry
-    throw err;
-  });
+export const META_EVENT = "repairCafe:meta";
+export function getMeta(fresh = false): Promise<Meta> {
+  if (fresh || !metaPromise) {
+    const request = apiFetch<Meta>(fresh ? "/meta?fresh=1" : "/meta");
+    const attempt: Promise<Meta> = request.catch((err) => {
+      if (metaPromise === attempt) metaPromise = undefined; // let the next call retry
+      throw err;
+    });
+    metaPromise = attempt;
+    if (fresh) request.then(() => window.dispatchEvent(new Event(META_EVENT)), () => undefined);
+  }
   return metaPromise;
 }
 
@@ -96,7 +115,25 @@ export const removeFromRestarters = (id: string) =>
 // A key for the job sheet's QR code (null if keys aren't set up).
 export const getTicketKey = (id: string) => apiFetch<{ key: string | null; expires?: number }>(`/tickets/${id}/key`, { method: "POST" }).then((r) => r.key);
 
-// Marks the job sheet as printed, which also checks the visitor in.
-export const markPrinted = (id: string) =>
-  apiFetch<{ printedAt: string }>(`/tickets/${id}/printed`, { method: "POST" });
+// Fixer attachments. Links last a few minutes, so fetch them when shown.
+export type Attachment = { id: string; name: string; extension: string | null; type: string | null; url: string };
+export const getAttachments = (id: string) =>
+  apiFetch<{ attachments: Attachment[] }>(`/tickets/${id}/attachments`).then((r) => r.attachments);
+
+// Sends the file as the raw body. The server uploads it to HubSpot.
+export const addAttachment = (id: string, file: Blob, name: string) =>
+  apiFetch<{ ticket: Ticket }>(`/tickets/${id}/attachments?name=${encodeURIComponent(name)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: file,
+  }).then((r) => r.ticket);
+
+export const removeAttachment = (id: string, fileId: string) =>
+  apiFetch<{ ticket: Ticket }>(`/tickets/${id}/attachments/${encodeURIComponent(fileId)}`, { method: "DELETE" }).then((r) => r.ticket);
+
+// Checks the visitor in and gives them today's next queue number. A
+// returning item also goes back to New with no fixer. printed records the
+// first print of the job sheet too.
+export const checkIn = (id: string, printed = false) =>
+  apiFetch<{ ticket: Ticket }>(`/tickets/${id}/checkin`, { method: "POST", body: JSON.stringify({ printed }) }).then((r) => r.ticket);
 

@@ -38,6 +38,14 @@ describe("ticket keys", () => {
     expect(keyAllows("123", "GET", "/api/tickets/123")).toBe(true);
     expect(keyAllows("123", "PATCH", "/api/tickets/123")).toBe(true);
     expect(keyAllows("123", "POST", "/api/tickets/123/sync")).toBe(true);
+    expect(keyAllows("123", "GET", "/api/tickets/123/attachments"))
+      .toBe(true);
+    expect(keyAllows("123", "POST", "/api/tickets/123/attachments"))
+      .toBe(true);
+    expect(keyAllows("123", "DELETE", "/api/tickets/123/attachments/9"))
+      .toBe(true);
+    expect(keyAllows("123", "POST", "/api/tickets/456/attachments"))
+      .toBe(false);
     expect(keyAllows("123", "GET", "/api/meta")).toBe(true);
     expect(keyAllows("123", "GET", "/api/tickets/456")).toBe(false);
     expect(keyAllows("123", "GET", "/api/tickets")).toBe(false);
@@ -45,5 +53,6 @@ describe("ticket keys", () => {
       .toBe(false);
     expect(keyAllows("123", "POST", "/api/tickets/123/key")).toBe(false);
     expect(keyAllows("123", "POST", "/api/tickets/123/printed")).toBe(false);
+    expect(keyAllows("123", "POST", "/api/tickets/123/checkin")).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignChanges, awaitingPrint, checkInChanges, isPrinted, printGroups } from "./listTab";
+import { assignChanges, awaitingCheckIn, byQueue, isPrinted, printGroups, queueLabel, todaysNumber } from "./listTab";
 
 const ticket = (repair_printed_at: string | null, hs_pipeline_stage = "1") => ({
   id: "1",
@@ -14,14 +14,15 @@ describe("isPrinted", () => {
   });
 });
 
-describe("awaitingPrint", () => {
+describe("awaitingCheckIn", () => {
   it("is a new booking with no job sheet yet", () => {
-    expect(awaitingPrint(ticket(null), "1")).toBe(true);
-    expect(awaitingPrint(ticket("2026-11-21T10:05:00Z"), "1")).toBe(false);
+    expect(awaitingCheckIn(ticket(null), "1")).toBe(true);
+    expect(awaitingCheckIn(ticket("2026-11-21T10:05:00Z"), "1")).toBe(false);
+    expect(awaitingCheckIn({ id: "1", firstName: null, properties: { hs_pipeline_stage: "1", repair_checked_in_at: "2026-11-21T10:05:00Z" } }, "1")).toBe(false);
   });
 
   it("counts a ticket moved past New as checked in, printed or not", () => {
-    expect(awaitingPrint(ticket(null, "2"), "1")).toBe(false);
+    expect(awaitingCheckIn(ticket(null, "2"), "1")).toBe(false);
   });
 });
 
@@ -80,9 +81,24 @@ describe("printGroups", () => {
   });
 });
 
-describe("checkInChanges", () => {
-  it("puts a returning item back at New with no fixer", () => {
-    const stages = [{ id: "1", label: "New", open: true, restartersStatus: null }];
-    expect(checkInChanges(stages)).toEqual({ hs_pipeline_stage: "1", repair_fixer: "" });
+describe("queue numbers", () => {
+  const q = (id: string, n: string | null, at: string | null) => ({ id, firstName: null, properties: { repair_queue_number: n, repair_checked_in_at: at } });
+  const TODAY = "2026-11-21";
+
+  it("only counts today's number", () => {
+    expect(todaysNumber(q("a", "7", "2026-11-21T10:05:00Z"), TODAY)).toBe("7");
+    expect(todaysNumber(q("a", "7", "2026-11-07T10:05:00Z"), TODAY)).toBeNull();
+    expect(todaysNumber(q("a", null, null), TODAY)).toBeNull();
+  });
+
+  it("dates an earlier session's number", () => {
+    expect(queueLabel(q("a", "7", "2026-11-21T10:05:00Z"), TODAY)).toBe("7");
+    expect(queueLabel(q("a", "2", "2026-11-07T10:05:00Z"), TODAY)).toBe("No. 2 · Sat 7 Nov");
+    expect(queueLabel(q("a", null, null), TODAY)).toBe("");
+  });
+
+  it("puts today's queue first in number order", () => {
+    const list = [q("old", "1", "2026-11-07T10:00:00Z"), q("ten", "10", "2026-11-21T11:00:00Z"), q("none", null, null), q("two", "2", "2026-11-21T10:10:00Z")];
+    expect(byQueue(list, TODAY).map((t) => t.id)).toEqual(["two", "ten", "old", "none"]);
   });
 });

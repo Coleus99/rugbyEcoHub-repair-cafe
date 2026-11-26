@@ -1,0 +1,29 @@
+meta {
+  name: Get event volunteers
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{restartersBase}}/api/events/{{restartersEventId}}/volunteers?api_token={{process.env.RESTARTERS_TOKEN}}
+  body: none
+  auth: none
+}
+
+params:query {
+  api_token: {{process.env.RESTARTERS_TOKEN}}
+}
+
+docs {
+  Who's volunteering at an event. This is an older route outside /api/v2,
+  and it needs the token.
+
+  The app lists people with "confirmed": true only. Each one's name is
+  volunteer.name, or full_name for someone added by name with no account.
+  "status": "2" with "confirmed": false means invited but not yet accepted.
+
+  Set restartersEventId to the event to check. The app uses the group's
+  next event from today onwards (today's, if there is one).
+
+  No fixture is saved, because the response includes emails.
+}

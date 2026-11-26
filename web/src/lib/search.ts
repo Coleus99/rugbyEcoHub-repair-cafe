@@ -6,7 +6,8 @@ import type { Option, Ticket } from "./api";
 export const shortRef = (id: string) => id.slice(-5);
 
 // Filters the open list as you type. Every word typed must match the start
-// of a word in the item name, first name or fixer, or the short reference.
+// of a word in the item name, first name or fixer, the short reference, or
+// be the queue number exactly.
 export function matchesSearch(ticket: Ticket, query: string, category: string): boolean {
   if (category && ticket.properties.restarters_category !== category) return false;
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -16,7 +17,7 @@ export function matchesSearch(ticket: Ticket, query: string, category: string): 
   const text = `${p.subject ?? ""} ${ticket.firstName ?? ""} ${p.repair_fixer ?? ""}`.toLowerCase();
   const textWords = text.split(/[^a-z0-9]+/).filter(Boolean);
   return words.every(
-    (w) => textWords.some((t) => t.startsWith(w)) || shortRef(ticket.id).startsWith(w.replace(/^#/, "")),
+    (w) => textWords.some((t) => t.startsWith(w)) || shortRef(ticket.id).startsWith(w.replace(/^#/, "")) || p.repair_queue_number === w.replace(/^no\.?/, ""),
   );
 }
 

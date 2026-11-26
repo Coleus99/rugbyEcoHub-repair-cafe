@@ -13,6 +13,13 @@ export type Stage = {
 };
 export type Pipeline = {id: string; label: string; stages: Stage[]};
 export type PropertyOption = {label: string; value: string};
+export type FileLink = {
+  id: string;
+  name: string;
+  extension: string | null;
+  type: string | null;
+  url: string;
+};
 export type Filter = {
   propertyName: string;
   operator: "EQ" | "IN" | "GTE";
@@ -157,6 +164,61 @@ export const createHubSpot = (token: string, fetchFn = fetch) => {
         `/crm/objects/2026-09/tickets/${encodeURIComponent(id)}`,
         {properties},
       ),
+
+    // Uploads a file to the HubSpot file manager as private, and returns its
+    // id. Needs the key's "files" scope.
+    uploadFile: async (
+      folderPath: string,
+      fileName: string,
+      data: Uint8Array,
+    ) => {
+      const form = new FormData();
+      form.append("file", new Blob([new Uint8Array(data)]), fileName);
+      form.append("fileName", fileName);
+      form.append("folderPath", folderPath);
+      form.append("options", JSON.stringify({
+        access: "PRIVATE",
+        overwrite: false,
+      }));
+      const res = await fetchFn(BASE + "/files/2026-09/files", {
+        method: "POST",
+        headers: {"Authorization": `Bearer ${token}`},
+        body: form,
+      });
+      const body = await res.json().catch(() => ({})) as
+        {id?: string; message?: string};
+      if (!res.ok || !body.id) {
+        throw new HubSpotError(res.status,
+          body.message ?? `HubSpot returned ${res.status}`);
+      }
+      return body.id;
+    },
+
+    // A short-lived link to view a private file, with its name and type.
+    fileLink: async (id: string): Promise<FileLink> => {
+      const f = await call<{
+        url: string; name?: string; extension?: string; type?: string;
+      }>("GET", `/files/2026-09/files/${encodeURIComponent(id)}/signed-url`);
+      return {
+        id,
+        name: [f.name, f.extension].filter(Boolean).join(".") || `File ${id}`,
+        extension: f.extension ?? null,
+        type: f.type ?? null,
+        url: f.url,
+      };
+    },
+
+    // Adds one option to a dropdown property, keeping the existing ones.
+    addPropertyOption: async (name: string, option: PropertyOption) => {
+      const path = `/crm/properties/2026-09/tickets/${name}`;
+      type Stored = PropertyOption & {displayOrder?: number; hidden?: boolean};
+      const prop = await call<{options: Stored[]}>("GET", path);
+      if (prop.options.some((o) => o.value === option.value)) return;
+      await call("PATCH", path, {options: [
+        ...prop.options,
+        {...option, displayOrder: prop.options.length, hidden: false},
+      ]});
+    },
 
     // Dropdown options, read from HubSpot so the app always matches it.
     getPropertyOptions: async (names: string[]) => {

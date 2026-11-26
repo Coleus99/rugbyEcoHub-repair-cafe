@@ -1,6 +1,13 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import request from "supertest";
-import {addFixer, createApp, READ_PROPERTIES} from "../../src/app";
+import {
+  addFixer,
+  createApp,
+  mergeFixers,
+  READ_PROPERTIES,
+  safeFileName,
+  sameFixer,
+} from "../../src/app";
 import {signTicketKey} from "../../src/ticketKey";
 import {
   HubSpotError,
@@ -15,6 +22,10 @@ const PIPELINE = fixture<Pipeline>("getRepairCafePipelineResponse.json");
 const TICKET = fixture<Ticket>("getTicketResponse.json");
 const OPTIONS = {
   restarters_category: [{label: "Toaster", value: "43"}],
+  repair_fixer: [
+    {label: "Alex E", value: "Alex E"},
+    {label: "Pete N", value: "Pete N"},
+  ],
 };
 
 const ticket = (id: string, props: Ticket["properties"]): Ticket => ({
@@ -31,6 +42,12 @@ const fakeHubSpot = () => ({
   updateTicket: vi.fn(async (): Promise<Ticket> => TICKET),
   firstNames: vi.fn(async (): Promise<Record<string, string>> => ({})),
   countTickets: vi.fn<HubSpot["countTickets"]>(async () => 0),
+  uploadFile: vi.fn<HubSpot["uploadFile"]>(async () => "777"),
+  addPropertyOption: vi.fn<HubSpot["addPropertyOption"]>(async () => undefined),
+  fileLink: vi.fn<HubSpot["fileLink"]>(async (id) => ({
+    id, name: `photo-${id}.jpg`, extension: "jpg", type: "IMG",
+    url: `https://files.example/${id}`,
+  })),
 });
 
 const fakeRestarters = () => ({
@@ -41,6 +58,7 @@ const fakeRestarters = () => ({
   createDevice: vi.fn(async () => 555),
   updateDevice: vi.fn(async () => undefined),
   deleteDevice: vi.fn(async () => undefined),
+  eventVolunteers: vi.fn(async (): Promise<string[]> => []),
 });
 
 let hubspot: ReturnType<typeof fakeHubSpot>;
@@ -378,31 +396,131 @@ describe("Restarters sync", () => {
   });
 });
 
-describe("POST /api/tickets/:id/printed", () => {
-  it("records the first print", async () => {
-    hubspot.getTicket.mockResolvedValue(
-      ticket(TICKET.id, {repair_printed_at: null}),
-    );
-    const res = await post(`/api/tickets/${TICKET.id}/printed`);
+describe("checking in", () => {
+  // 10:30 in London on 21 November (GMT, so the same as UTC).
+  const NOW = new Date("2026-11-21T10:30:00Z");
+  const MIDNIGHT = String(Date.parse("2026-11-21T00:00:00Z"));
+  const checkInApp = () => createApp({
+    hubspot: () => hubspot as unknown as HubSpot,
+    pipelineId: () => "0",
+    restarters: () => restarters as unknown as Restarters,
+    // Needs follow-up syncs as Repairable, so it can be a returning item.
+    syncConfig: () => ({groupId: "116",
+      stageStatus: {"3": "Fixed", "6385083617": "Repairable"}}),
+    verifyToken: async () => undefined,
+    now: () => NOW,
+  });
+  const checkIn = (id: string, body: object = {}) =>
+    request(checkInApp()).post(`/api/tickets/${id}/checkin`)
+      .set("Authorization", "Bearer good").send(body);
+  const booking = (props: Ticket["properties"] = {}) =>
+    hubspot.getTicket.mockResolvedValue(ticket(TICKET.id, {
+      hs_pipeline_stage: "1", repair_printed_at: null,
+      repair_checked_in_at: null, repair_queue_number: null, ...props,
+    }));
+
+  it("gives a new booking the next number in today's queue", async () => {
+    booking();
+    hubspot.countTickets.mockResolvedValue(6);
+    const res = await checkIn(TICKET.id);
     expect(res.status).toBe(200);
+    expect(hubspot.countTickets).toHaveBeenCalledWith([
+      {propertyName: "hs_pipeline", operator: "EQ", value: "0"},
+      {propertyName: "repair_checked_in_at", operator: "GTE",
+        value: MIDNIGHT},
+    ]);
     expect(hubspot.updateTicket).toHaveBeenCalledWith(TICKET.id, {
-      repair_printed_at: res.body.printedAt,
+      repair_checked_in_at: NOW.toISOString(),
+      repair_queue_number: "7",
     });
     expect(restarters.createDevice).not.toHaveBeenCalled();
   });
 
-  it("keeps the first print time on a reprint", async () => {
-    hubspot.getTicket.mockResolvedValue(
-      ticket(TICKET.id, {repair_printed_at: "2026-11-21T10:05:00Z"}),
-    );
-    const res = await post(`/api/tickets/${TICKET.id}/printed`);
-    expect(res.body).toEqual({printedAt: "2026-11-21T10:05:00Z"});
+  it("counts from London midnight in summer time", async () => {
+    booking();
+    await request(createApp({
+      hubspot: () => hubspot as unknown as HubSpot,
+      pipelineId: () => "0",
+      restarters: () => restarters as unknown as Restarters,
+      syncConfig: () => ({groupId: "116", stageStatus: {}}),
+      verifyToken: async () => undefined,
+      now: () => new Date("2026-07-04T09:00:00Z"),
+    })).post(`/api/tickets/${TICKET.id}/checkin`)
+      .set("Authorization", "Bearer good");
+    expect(hubspot.countTickets.mock.calls[0][0][1].value)
+      .toBe(String(Date.parse("2026-07-03T23:00:00Z")));
+  });
+
+  it("records the first print when printed", async () => {
+    booking();
+    await checkIn(TICKET.id, {printed: true});
+    expect(hubspot.updateTicket).toHaveBeenCalledWith(TICKET.id,
+      expect.objectContaining({
+        repair_printed_at: NOW.toISOString(),
+        repair_queue_number: "1",
+      }));
+  });
+
+  it("keeps its number when checked in again or reprinted", async () => {
+    booking({
+      repair_checked_in_at: "2026-11-21T10:05:00Z",
+      repair_queue_number: "3",
+      repair_printed_at: "2026-11-21T10:05:00Z",
+    });
+    const res = await checkIn(TICKET.id, {printed: true});
+    expect(res.status).toBe(200);
     expect(hubspot.updateTicket).not.toHaveBeenCalled();
   });
 
-  it("won't mark a ticket in another pipeline", async () => {
+  it("prints a paperless check-in without a new number", async () => {
+    booking({
+      repair_checked_in_at: "2026-11-21T10:05:00Z",
+      repair_queue_number: "3",
+    });
+    await checkIn(TICKET.id, {printed: true});
+    expect(hubspot.updateTicket).toHaveBeenCalledWith(TICKET.id,
+      {repair_printed_at: NOW.toISOString()});
+  });
+
+  it("treats a sheet printed before check-in existed as checked in",
+    async () => {
+      booking({repair_printed_at: "2026-11-07T10:05:00Z"});
+      await checkIn(TICKET.id);
+      expect(hubspot.updateTicket).not.toHaveBeenCalled();
+    });
+
+  it("checks a returning item back in with a new number", async () => {
+    booking({
+      hs_pipeline_stage: "6385083617",
+      repair_next_steps: "More time needed",
+      repair_fixer: "Pete N",
+      repair_checked_in_at: "2026-11-07T10:05:00Z",
+      repair_queue_number: "2",
+    });
+    hubspot.countTickets.mockResolvedValue(4);
+    await checkIn(TICKET.id);
+    expect(hubspot.updateTicket).toHaveBeenCalledWith(TICKET.id, {
+      repair_checked_in_at: NOW.toISOString(),
+      repair_queue_number: "5",
+      hs_pipeline_stage: "1",
+      repair_fixer: "",
+    });
+  });
+
+  it("still answers the old printed route", async () => {
+    booking();
+    const res = await request(checkInApp())
+      .post(`/api/tickets/${TICKET.id}/printed`)
+      .set("Authorization", "Bearer good");
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("printedAt");
+    expect(hubspot.updateTicket).toHaveBeenCalledWith(TICKET.id,
+      expect.objectContaining({repair_printed_at: NOW.toISOString()}));
+  });
+
+  it("won't check in a ticket in another pipeline", async () => {
     hubspot.getTicket.mockResolvedValue(ticket("9", {hs_pipeline: "123"}));
-    const res = await post("/api/tickets/9/printed");
+    const res = await checkIn("9");
     expect(res.status).toBe(404);
     expect(hubspot.updateTicket).not.toHaveBeenCalled();
   });
@@ -571,5 +689,188 @@ describe("QR ticket keys", () => {
       .set("Authorization", key(TICKET.id, NOW.getTime() - 1));
     expect(res.status).toBe(401);
     expect(res.body.error).toMatch(/expired/);
+  });
+});
+
+describe("fixer attachments", () => {
+  const withFiles = (value: string | null) =>
+    hubspot.getTicket.mockResolvedValue(
+      ticket("448850507989", {repair_item_fixer_attachments: value}));
+  const upload = (name = "Kettle photo.jpg") =>
+    request(app)
+      .post("/api/tickets/448850507989/attachments")
+      .query({name})
+      .set("Authorization", "Bearer good")
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("fake image"));
+
+  it("lists the files with view links", async () => {
+    withFiles("11;12");
+    const res = await get("/api/tickets/448850507989/attachments");
+    expect(res.status).toBe(200);
+    expect(res.body.attachments.map((a: {id: string}) => a.id))
+      .toEqual(["11", "12"]);
+  });
+
+  it("leaves out a file HubSpot can't find", async () => {
+    withFiles("11;12");
+    hubspot.fileLink.mockRejectedValueOnce(new HubSpotError(404, "gone"));
+    const res = await get("/api/tickets/448850507989/attachments");
+    expect(res.body.attachments).toHaveLength(1);
+  });
+
+  it("uploads privately into the ticket's folder and adds the id", async () => {
+    withFiles("11");
+    const res = await upload();
+    expect(res.status).toBe(200);
+    const [folder, name, data] = hubspot.uploadFile.mock.calls[0];
+    expect(folder).toBe("/repair-cafe/fixer-attachments/448850507989");
+    expect(name).toBe("Kettle photo.jpg");
+    expect(Buffer.from(data).toString()).toBe("fake image");
+    expect(hubspot.updateTicket).toHaveBeenCalledWith("448850507989",
+      {repair_item_fixer_attachments: "11;777"});
+  });
+
+  it("rejects an empty upload", async () => {
+    withFiles(null);
+    const res = await request(app)
+      .post("/api/tickets/448850507989/attachments?name=a.jpg")
+      .set("Authorization", "Bearer good")
+      .set("Content-Type", "application/octet-stream");
+    expect(res.status).toBe(400);
+    expect(hubspot.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it("explains a missing files scope", async () => {
+    withFiles(null);
+    hubspot.uploadFile.mockRejectedValueOnce(new HubSpotError(403, "scopes"));
+    const res = await upload();
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/"files" scope/);
+    expect(hubspot.updateTicket).not.toHaveBeenCalled();
+  });
+
+  it("won't upload to a ticket in another pipeline", async () => {
+    hubspot.getTicket.mockResolvedValue(
+      ticket("448850507989", {hs_pipeline: "99"}));
+    const res = await upload();
+    expect(res.status).toBe(404);
+    expect(hubspot.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it("removes a file from the ticket only", async () => {
+    withFiles("11;12");
+    const res = await request(app)
+      .delete("/api/tickets/448850507989/attachments/11")
+      .set("Authorization", "Bearer good");
+    expect(res.status).toBe(200);
+    expect(hubspot.updateTicket).toHaveBeenCalledWith("448850507989",
+      {repair_item_fixer_attachments: "12"});
+  });
+
+  it("404s removing a file that isn't on the ticket", async () => {
+    withFiles("11");
+    const res = await request(app)
+      .delete("/api/tickets/448850507989/attachments/99")
+      .set("Authorization", "Bearer good");
+    expect(res.status).toBe(404);
+    expect(hubspot.updateTicket).not.toHaveBeenCalled();
+  });
+
+  it("can't be edited through the ticket form", async () => {
+    const res = await patch("/api/tickets/448850507989",
+      {properties: {repair_item_fixer_attachments: "1"}});
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("safeFileName", () => {
+  it("keeps ordinary names and the extension", () => {
+    expect(safeFileName("Kettle photo (1).jpg")).toBe("Kettle photo (1).jpg");
+  });
+  it("drops path parts and odd characters", () => {
+    expect(safeFileName("../../etc/pass?wd.pdf")).toBe("etcpasswd.pdf");
+  });
+  it("falls back when nothing is left", () => {
+    expect(safeFileName("")).toBe("attachment");
+  });
+});
+
+describe("fixers from Restarters sign-ups", () => {
+  it("matches a short HubSpot name to a full Restarters one", () => {
+    expect(sameFixer("Martin B", "Martin Bryant")).toBe(true);
+    expect(sameFixer("Martin B.", "martin bryant")).toBe(true);
+    expect(sameFixer("Martin Bryant", "Martin Bryant")).toBe(true);
+    expect(sameFixer("Martin C", "Martin Bryant")).toBe(false);
+    expect(sameFixer("Martin", "Martin Bryant")).toBe(false);
+  });
+
+  it("lists sign-ups first, using existing HubSpot names", () => {
+    expect(mergeFixers(["Sam Sample", "Alex Example"], OPTIONS.repair_fixer))
+      .toEqual([
+        {value: "Alex E", label: "Alex E", signedUp: true},
+        {value: "Sam Sample", label: "Sam Sample", signedUp: true},
+        {value: "Pete N", label: "Pete N", signedUp: false},
+      ]);
+  });
+
+  it("puts each group in alphabetical order", () => {
+    const options = ["Zoe P", "bob K", "Amy L"]
+      .map((n) => ({label: n, value: n}));
+    expect(mergeFixers(["Yan Q", "Cal D"], options).map((f) => f.label))
+      .toEqual(["Cal D", "Yan Q", "Amy L", "bob K", "Zoe P"]);
+  });
+
+  it("adds the session's sign-ups to the meta", async () => {
+    restarters.eventVolunteers.mockResolvedValue(["Sam Sample"]);
+    const res = await get("/api/meta");
+    expect(restarters.eventVolunteers).toHaveBeenCalledWith(19170);
+    expect(res.body.fixers[0])
+      .toEqual({value: "Sam Sample", label: "Sam Sample", signedUp: true});
+  });
+
+  it("re-reads sign-ups on ?fresh=1 instead of using the cache", async () => {
+    restarters.eventVolunteers.mockResolvedValue(["Sam Sample"]);
+    await get("/api/meta");
+    restarters.eventVolunteers.mockResolvedValue(["Sam Sample", "Jo New"]);
+
+    const cached = await get("/api/meta");
+    expect(cached.body.fixers.map((f: {label: string}) => f.label))
+      .not.toContain("Jo New");
+
+    const fresh = await get("/api/meta?fresh=1");
+    expect(fresh.body.fixers[0])
+      .toEqual({value: "Jo New", label: "Jo New", signedUp: true});
+    expect(hubspot.getPipeline).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to the HubSpot list if Restarters fails", async () => {
+    restarters.eventVolunteers.mockRejectedValue(new Error("down"));
+    const res = await get("/api/meta");
+    expect(res.status).toBe(200);
+    expect(res.body.fixers.every((f: {signedUp: boolean}) => !f.signedUp))
+      .toBe(true);
+  });
+
+  it("adds a signed-up volunteer to HubSpot's list before saving", async () => {
+    restarters.eventVolunteers.mockResolvedValue(["Sam Sample"]);
+    const res = await patch(`/api/tickets/${TICKET.id}`,
+      {properties: {repair_fixer: "Sam Sample"}});
+    expect(res.status).toBe(200);
+    expect(hubspot.addPropertyOption).toHaveBeenCalledWith("repair_fixer",
+      {label: "Sam Sample", value: "Sam Sample"});
+  });
+
+  it("doesn't add a name that isn't signed up", async () => {
+    await patch(`/api/tickets/${TICKET.id}`,
+      {properties: {repair_fixer: "Somebody Else"}});
+    expect(hubspot.addPropertyOption).not.toHaveBeenCalled();
+  });
+
+  it("doesn't touch the list for a known name", async () => {
+    await patch(`/api/tickets/${TICKET.id}`,
+      {properties: {repair_fixer: "Pete N"}});
+    expect(hubspot.addPropertyOption).not.toHaveBeenCalled();
+    expect(restarters.eventVolunteers).not.toHaveBeenCalled();
   });
 });
